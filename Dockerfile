@@ -1,6 +1,6 @@
 FROM freepascal/fpc:3.2.2-focal-full AS build
 WORKDIR /app
-COPY src/server.pas .
+COPY server.pas .
 RUN fpc -O2 -Xs server.pas
 
 FROM debian:bookworm-slim
