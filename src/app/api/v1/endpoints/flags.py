@@ -25,7 +25,7 @@ async def get_current(_: AdminUserDep, id: UUID, flag_service: FlagServiceDep) -
     return await flag_service.get_by_id(id)
 
 
-@router.put("/{id}", response_model=FlagReadResponse, status_code=status.HTTP_200_OK)
+@router.patch("/{id}", response_model=FlagReadResponse, status_code=status.HTTP_200_OK)
 async def update_current(
     _: AdminUserDep, id: UUID, flag_service: FlagServiceDep, new_data: FlagUpdateBody
 ) -> Flag | None:

@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from .auth import router as auth_router
 from .flags import router as flag_router
-from .ping import router as ping_router
+from .health import router as ping_router
 from .users import router as users_router
 
 router = APIRouter(prefix="/v1")
