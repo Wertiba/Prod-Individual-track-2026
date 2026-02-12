@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import AfterValidator, EmailStr, Field, field_serializer
 
 from app.core.schemas.base import PyModel
-from app.core.schemas.enums import Gender, MaritalStatus, UserRole
+from app.core.schemas.enums import UserRole
 from app.core.schemas.token import Token
 from app.core.utils import check_len_password
 
@@ -14,6 +14,7 @@ class UserCreateBody(PyModel):
     email: Annotated[EmailStr, Field(max_length=254)]
     password: Annotated[str, AfterValidator(check_len_password)]
     fullName: Annotated[str, Field(min_length=2, max_length=200)]
+    role: Annotated[UserRole, Field(default=UserRole["VIEWER"])]
 
 
 class UserLoginBody(PyModel):

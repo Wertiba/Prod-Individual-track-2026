@@ -25,7 +25,7 @@ class UserRepository(BaseRepository[User]):
 
     async def deactivate(self, user_id: UUID) -> None:
         now = datetime.now(timezone.utc)
-        stmt = update(User).where(User.id == user_id).values(is_active=False, updated_at=now)  # noqa
+        stmt = update(User).where(User.id == user_id).values(isActive=False, updatedAt=now)  # noqa
         try:
             await self.session.execute(stmt)
         except SQLAlchemyError as e:
@@ -33,7 +33,7 @@ class UserRepository(BaseRepository[User]):
 
     async def update(self, user_id: UUID, new_data: UserUpdateBody) -> User | None:
         now = datetime.now(timezone.utc)
-        stmt = update(User).where(User.id == user_id).values(**new_data.model_dump(), updated_at=now).returning(User)  # noqa
+        stmt = update(User).where(User.id == user_id).values(**new_data.model_dump(), updatedAt=now).returning(User)  # noqa
         try:
             result = await self.session.execute(stmt)
             return result.scalar_one_or_none()

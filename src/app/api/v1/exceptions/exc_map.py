@@ -1,5 +1,13 @@
-from app.api.v1.exceptions import Forbidden, Inactive, NotFound, Unauthorized, ValidationFailed
-from app.api.v1.exceptions.user import EmailConflict, NotFoundForTransaction, RuleConflict
+from app.api.v1.exceptions.user import (
+    EmailConflict,
+    Forbidden,
+    Inactive,
+    NotFound,
+    NotFoundForTransaction,
+    RuleConflict,
+    Unauthorized,
+    ValidationFailed,
+)
 from app.core.exceptions.entity_exceptions import (
     EmailAlreadyExistsError,
     ForbiddenError,

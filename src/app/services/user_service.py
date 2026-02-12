@@ -12,7 +12,7 @@ from app.core.schemas.user import TokenData, UserCreateBody, UserReadResponse, U
 from app.core.utils.paginated import Page, PaginationParams
 from app.infrastructure.models import User
 from app.infrastructure.unit_of_work import UnitOfWork
-from app.services import JWTService
+from app.services.jwt_service import JWTService
 
 
 class UserService:

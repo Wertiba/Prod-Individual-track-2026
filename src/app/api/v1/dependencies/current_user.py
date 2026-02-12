@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 
-from app.api.v1.dependencies.services import AuthServiceDep
+from app.api.v1.dependencies.services.auth_service import AuthServiceDep
 from app.core.exceptions.entity_exceptions import ForbiddenError, InvalidCredentialsError
 from app.core.schemas.enums import UserRole
 from app.core.schemas.user import TokenData

@@ -14,7 +14,7 @@ class User(SQLModel, table=True):
     password: str = Field(nullable=False)
     fullName: str = Field(nullable=False)
 
-    role: str = Field(default="USER")
+    role: str = Field(default="VIEWER")
     isActive: bool = Field(default=True)
 
     createdAt: datetime = Field(default_factory=datetime.now)
