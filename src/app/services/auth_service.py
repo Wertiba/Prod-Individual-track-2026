@@ -8,7 +8,7 @@ from app.core.exceptions.entity_exceptions import (
     UserNotFoundError,
 )
 from app.core.schemas.token import Token
-from app.core.schemas.user import TokenData, UserLoginBody, UserWithTokenResponse
+from app.core.schemas.user import TokenData, UserLoginBody, UserReadResponse, UserWithTokenResponse
 from app.infrastructure.models import User
 from app.infrastructure.unit_of_work import UnitOfWork
 
@@ -55,5 +55,5 @@ class AuthService:
         return UserWithTokenResponse(
             accessToken=tokens.accessToken,
             expiresIn=tokens.expiresIn,
-            user=user,
+            user=UserReadResponse(**user.model_dump()),
         )
