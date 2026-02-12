@@ -16,10 +16,6 @@ from app.services.jwt_service import JWTService
 
 
 class UserService:
-    USER_BY_LOGIN_TTL = settings.cache.entity_cache.ttl.USER_BY_LOGIN
-    ALL_USERS_ENDPOINT_NAMESPACE = settings.cache.response_cache.namespace.ALL_USERS
-    ALL_USERS_ENDPOINT_TTL = settings.cache.response_cache.ttl.ALL_USERS
-
     def __init__(self, uow: UnitOfWork, jwt_service: JWTService):
         self.uow = uow
         self.jwt_service = jwt_service

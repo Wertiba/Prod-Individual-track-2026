@@ -6,3 +6,9 @@ class UserRole(str, Enum):  # noqa: UP042
     APPROVER = "APPROVER"
     EXPERIMENTER = "EXPERIMENTER"
     ADMIN = "ADMIN"
+
+
+class FlagType(str, Enum):  # noqa: UP042
+    STRING = "STRING"
+    BOOL = "BOOL"
+    NUMBER = "NUMBER"

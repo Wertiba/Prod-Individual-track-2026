@@ -3,6 +3,7 @@ from .pagination import PaginationDep
 from .services import (
     AuthServiceDep,
     CacheServiceDep,
+    FlagServiceDep,
     UserServiceDep,
 )
 from .session import SessionDep
@@ -13,6 +14,7 @@ __all__ = [
     "AuthServiceDep",
     "CacheServiceDep",
     "CurrentUserDep",
+    "FlagServiceDep",
     "PaginationDep",
     "SessionDep",
     "UnitOfWorkDep",

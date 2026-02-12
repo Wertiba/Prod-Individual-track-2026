@@ -4,17 +4,20 @@ from typing import Self
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.repositories import UserRepository
+from app.infrastructure.repositories.flag_repository import FlagRepository
 from app.infrastructure.unit_of_work import AbstractUnitOfWork
 
 
 class UnitOfWork(AbstractUnitOfWork):
     user_repo: UserRepository
+    flag_repo: FlagRepository
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
     async def __aenter__(self) -> Self:
         self.user_repo = UserRepository(self.session)
+        self.flag_repo = FlagRepository(self.session)
         return self
 
     async def __aexit__(

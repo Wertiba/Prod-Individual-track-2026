@@ -1,12 +1,14 @@
+from datetime import datetime, timezone
 from typing import Generic
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.custom_types import T
 from app.core.exceptions.repository_exceptions import DuplicateError, RepositoryError
+from app.core.schemas.base import PyModel
 
 
 class BaseRepository(Generic[T]):  # noqa
@@ -25,9 +27,20 @@ class BaseRepository(Generic[T]):  # noqa
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
 
-    async def delete(self, obj: T) -> None:
+    async def deactivate(self, id_: UUID) -> None:
+        now = datetime.now(timezone.utc)
+        stmt = update(self.model).where(self.model.id == id_).values(enabled=False, updatedAt=now)  # noqa
         try:
-            await self.session.delete(obj)
+            await self.session.execute(stmt)
+        except SQLAlchemyError as e:
+            raise RepositoryError("Database error") from e
+
+    async def update(self, id_: UUID, new_data: PyModel) -> T | None:
+        now = datetime.now(timezone.utc)
+        stmt = update(self.model).where(self.model.id == id_).values(**new_data.model_dump(), updatedAt=now).returning(self.model)  # noqa
+        try:
+            result = await self.session.execute(stmt)
+            return result.scalar_one_or_none()
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
 

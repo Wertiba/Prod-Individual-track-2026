@@ -1,15 +1,15 @@
 from app.api.v1.exceptions.user import (
-    EmailConflict,
+    Conflict,
     Forbidden,
     Inactive,
     NotFound,
-    NotFoundForTransaction,
-    RuleConflict,
     Unauthorized,
     ValidationFailed,
 )
 from app.core.exceptions.entity_exceptions import (
     EmailAlreadyExistsError,
+    FlagAlreadyExistsError,
+    FlagNotFoundError,
     ForbiddenError,
     InvalidCredentialsError,
     InvalidPasswordError,
@@ -17,16 +17,16 @@ from app.core.exceptions.entity_exceptions import (
     UnprocessableEntityError,
     UserNotActiveError,
     UserNotFoundError,
-    UserNotFoundForTransactionError,
 )
 
 DOMAIN_TO_API: dict[type, callable] = {
     UserNotFoundError: lambda path, exc=None: NotFound(
         path=path,
-        message="Пользователь не найден",
+        message="User not found",
     ),
-    UserNotFoundForTransactionError: lambda path, exc=None: NotFoundForTransaction(
-        path=path, details={"userId": getattr(exc, "user_id", None)}
+    FlagNotFoundError: lambda path, exc=None: NotFound(
+        path=path,
+        message="Flag not found",
     ),
     ForbiddenError: lambda path, exc=None: Forbidden(
         path=path,
@@ -37,11 +37,13 @@ DOMAIN_TO_API: dict[type, callable] = {
     InvalidPasswordError: lambda path, exc=None: Unauthorized(
         path=path,
     ),
-    EmailAlreadyExistsError: lambda path, exc=None: EmailConflict(
+    EmailAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,
+        message="Email already exists",
     ),
-    RuleAlreadyExistsError: lambda path, exc=None: RuleConflict(
+    FlagAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,
+        message="Flag already exists",
     ),
     UnprocessableEntityError: lambda path, exc=None: ValidationFailed(
         path=path,

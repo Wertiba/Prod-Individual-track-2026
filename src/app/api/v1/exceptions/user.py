@@ -31,14 +31,6 @@ class Conflict(APIException):
     message = "Конфликт данных"
 
 
-class EmailConflict(Conflict):
-    code = "EMAIL_ALREADY_EXISTS"
-
-
-class RuleConflict(Conflict):
-    code = "RULE_NAME_ALREADY_EXISTS"
-
-
 class BadRequest(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "BAD_REQUEST"

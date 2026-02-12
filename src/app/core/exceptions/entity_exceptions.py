@@ -2,13 +2,11 @@ class EntityError(Exception):
     pass
 
 
-class UserNotFoundForTransactionError(EntityError):
-    def __init__(self, user_id: str):
-        self.user_id = user_id
-        super().__init__(f"User {user_id} not found")
-
-
 class UserNotFoundError(EntityError):
+    pass
+
+
+class FlagNotFoundError(EntityError):
     pass
 
 
@@ -21,6 +19,10 @@ class InvalidPasswordError(EntityError):
 
 
 class EmailAlreadyExistsError(EntityError):
+    pass
+
+
+class FlagAlreadyExistsError(EntityError):
     pass
 
 
