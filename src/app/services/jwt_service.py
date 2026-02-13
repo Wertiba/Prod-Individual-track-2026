@@ -4,7 +4,7 @@ import jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
-from app.core.exceptions.entity_exceptions import InvalidCredentialsError
+from app.core.exceptions.user_exs import InvalidCredentialsError
 from app.core.utils import Singleton
 
 

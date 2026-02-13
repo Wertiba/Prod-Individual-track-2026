@@ -1,5 +1,5 @@
+from .api_exs import BadRequest, Conflict, Forbidden, Inactive, NotFound, Unauthorized, ValidationFailed
 from .base import APIException
-from .user import BadRequest, Conflict, Forbidden, Inactive, NotFound, Unauthorized, ValidationFailed
 
 __all__ = [
     "APIException",

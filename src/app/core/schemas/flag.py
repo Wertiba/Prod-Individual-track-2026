@@ -1,8 +1,14 @@
 from datetime import datetime
+from enum import Enum
 from uuid import UUID
 
 from app.core.schemas.base import PyModel
-from app.core.schemas.enums import FlagType
+
+
+class FlagType(str, Enum):
+    STRING = "STRING"
+    BOOL = "BOOL"
+    NUMBER = "NUMBER"
 
 
 class FlagCreateBody(PyModel):

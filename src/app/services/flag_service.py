@@ -1,10 +1,10 @@
 from uuid import UUID
 
-from app.core.exceptions.entity_exceptions import (
+from app.core.exceptions.base import DuplicateError
+from app.core.exceptions.flag_exs import (
     FlagAlreadyExistsError,
     FlagNotFoundError,
 )
-from app.core.exceptions.repository_exceptions import DuplicateError
 from app.core.schemas.flag import FlagCreateBody, FlagReadResponse, FlagUpdateBody
 from app.core.utils.paginated import Page, PaginationParams
 from app.infrastructure.models import Flag

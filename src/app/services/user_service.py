@@ -1,14 +1,12 @@
 from uuid import UUID
 
-from app.core.config import settings
-from app.core.exceptions.entity_exceptions import (
+from app.core.exceptions.base import DuplicateError
+from app.core.exceptions.user_exs import (
     EmailAlreadyExistsError,
     ForbiddenError,
     UserNotFoundError,
 )
-from app.core.exceptions.repository_exceptions import DuplicateError
-from app.core.schemas.enums import UserRole
-from app.core.schemas.user import TokenData, UserCreateBody, UserReadResponse, UserUpdateBody
+from app.core.schemas.user import TokenData, UserCreateBody, UserReadResponse, UserRole, UserUpdateBody
 from app.core.utils.paginated import Page, PaginationParams
 from app.infrastructure.models import User
 from app.infrastructure.unit_of_work import UnitOfWork

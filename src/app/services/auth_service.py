@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from app.core.exceptions.entity_exceptions import (
+from app.core.exceptions.user_exs import (
     InvalidCredentialsError,
     InvalidPasswordError,
     UserNotActiveError,

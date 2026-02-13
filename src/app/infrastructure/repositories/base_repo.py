@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.custom_types import T
-from app.core.exceptions.repository_exceptions import DuplicateError, RepositoryError
+from app.core.exceptions.base import DuplicateError, RepositoryError
 from app.core.schemas.base import PyModel
 
 

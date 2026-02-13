@@ -5,7 +5,7 @@ from pydantic import EmailStr
 from sqlalchemy import Column, DateTime
 from sqlmodel import Field, SQLModel
 
-from app.core.schemas.enums import UserRole
+from app.core.schemas.user import UserRole
 
 
 class User(SQLModel, table=True):

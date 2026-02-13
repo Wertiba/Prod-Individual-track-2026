@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Column, DateTime
 from sqlmodel import Field, SQLModel
 
-from app.core.schemas.enums import FlagType
+from app.core.schemas.flag import FlagType
 
 
 class Flag(SQLModel, table=True):

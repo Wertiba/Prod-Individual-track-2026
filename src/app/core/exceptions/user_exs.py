@@ -1,12 +1,7 @@
-class EntityError(Exception):
-    pass
+from app.core.exceptions.base import EntityError
 
 
 class UserNotFoundError(EntityError):
-    pass
-
-
-class FlagNotFoundError(EntityError):
     pass
 
 
@@ -22,19 +17,7 @@ class EmailAlreadyExistsError(EntityError):
     pass
 
 
-class FlagAlreadyExistsError(EntityError):
-    pass
-
-
 class InvalidCredentialsError(EntityError):
-    pass
-
-
-class RuleAlreadyExistsError(EntityError):
-    pass
-
-
-class UnprocessableEntityError(EntityError):
     pass
 
 

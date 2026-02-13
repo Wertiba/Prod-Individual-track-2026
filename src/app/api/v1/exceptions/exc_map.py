@@ -1,4 +1,4 @@
-from app.api.v1.exceptions.user import (
+from app.api.v1.exceptions.api_exs import (
     Conflict,
     Forbidden,
     Inactive,
@@ -6,15 +6,13 @@ from app.api.v1.exceptions.user import (
     Unauthorized,
     ValidationFailed,
 )
-from app.core.exceptions.entity_exceptions import (
+from app.core.exceptions.base import UnprocessableEntityError
+from app.core.exceptions.flag_exs import FlagAlreadyExistsError, FlagNotFoundError
+from app.core.exceptions.user_exs import (
     EmailAlreadyExistsError,
-    FlagAlreadyExistsError,
-    FlagNotFoundError,
     ForbiddenError,
     InvalidCredentialsError,
     InvalidPasswordError,
-    RuleAlreadyExistsError,
-    UnprocessableEntityError,
     UserNotActiveError,
     UserNotFoundError,
 )

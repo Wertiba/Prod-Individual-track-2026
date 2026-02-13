@@ -3,9 +3,8 @@ from typing import Annotated
 from fastapi import Depends, Request
 
 from app.api.v1.dependencies.services.auth_service import AuthServiceDep
-from app.core.exceptions.entity_exceptions import ForbiddenError, InvalidCredentialsError
-from app.core.schemas.enums import UserRole
-from app.core.schemas.user import TokenData
+from app.core.exceptions.user_exs import ForbiddenError, InvalidCredentialsError
+from app.core.schemas.user import TokenData, UserRole
 
 
 async def get_current_user(request: Request, auth_service: AuthServiceDep) -> TokenData:

@@ -1,13 +1,20 @@
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Annotated
 from uuid import UUID
 
 from pydantic import AfterValidator, EmailStr, Field, field_serializer
 
 from app.core.schemas.base import PyModel
-from app.core.schemas.enums import UserRole
 from app.core.schemas.token import Token
 from app.core.utils import check_len_password
+
+
+class UserRole(str, Enum):
+    VIEWER = "VIEWER"
+    APPROVER = "APPROVER"
+    EXPERIMENTER = "EXPERIMENTER"
+    ADMIN = "ADMIN"
 
 
 class UserCreateBody(PyModel):

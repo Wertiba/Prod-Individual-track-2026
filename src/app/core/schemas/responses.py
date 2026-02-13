@@ -1,7 +1,5 @@
-import uuid
-from datetime import datetime
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import Field
 
@@ -35,7 +33,7 @@ class FieldError(PyModel):
 class ValidationErrorResponse(PyModel):
     code: str = "VALIDATION_FAILED"
     message: str = "Некоторые поля не прошли валидацию"
-    traceId: UUID = Field(default_factory=uuid.uuid4)
-    timestamp: datetime = (Field(default_factory=now_iso_z),)
+    traceId: UUID = Field(default_factory=uuid4)
+    timestamp: str = Field(default_factory=now_iso_z)
     path: str
     fieldErrors: list[FieldError]
