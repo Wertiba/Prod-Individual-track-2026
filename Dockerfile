@@ -1,17 +1,19 @@
-FROM freepascal/fpc:3.2.2-focal-full AS build
-WORKDIR /app
-COPY server.pas .
-RUN fpc -O2 -Xs server.pas
-
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends libcap2-bin ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+FROM python:3.13-alpine3.19
 
 WORKDIR /app
-COPY --from=build /app/server /app/server
 
-RUN setcap 'cap_net_bind_service=+ep' /app/server
+RUN apk add --no-cache curl postgresql-client
 
-USER 65534:65534
-EXPOSE 80
-CMD ["/app/server"]
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+COPY ./src/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ./src .
+RUN chmod +x ./entrypoint.sh
+
+EXPOSE 8080
+
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
