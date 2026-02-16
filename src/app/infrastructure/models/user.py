@@ -1,11 +1,18 @@
 import uuid
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from pydantic import EmailStr
-from sqlalchemy import Column, DateTime
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
 from app.core.schemas.role import RoleCode
+
+if TYPE_CHECKING:
+    from app.infrastructure.models.decision import Decision
+    from app.infrastructure.models.event import EventCatalog
+    from app.infrastructure.models.experiment import Experiment
+    from app.infrastructure.models.flag import Flag
+    from app.infrastructure.models.metric import Metric, MetricCatalog
 
 
 class UserRole(SQLModel, table=True):
@@ -35,6 +42,10 @@ class User(SQLModel, table=True):
     fullName: str = Field(nullable=False)
     isActive: bool = Field(default=True)
 
+    required: int = Field(nullable=True)
+    useFallback: bool = Field(nullable=True)
+    strategy: str = Field(nullable=True, max_length=255)
+
     createdAt: datetime = Field(default_factory=datetime.now)
     updatedAt: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -46,3 +57,9 @@ class User(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "selectin"},
         link_model=UserRole,
     )
+    created_catalog_metrics: list["MetricCatalog"] | None = Relationship(back_populates="creator")
+    added_metrics: list["Metric"] | None = Relationship(back_populates="creator")
+    created_flags: list["Flag"] | None = Relationship(back_populates="creator")
+    created_experiments: list["Experiment"] | None = Relationship(back_populates="creator")
+    decisions: list["Decision"] | None = Relationship(back_populates="user")
+    created_catalog_events: list["EventCatalog"] | None = Relationship(back_populates="creator")

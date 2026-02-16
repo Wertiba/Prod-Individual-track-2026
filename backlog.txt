@@ -1,0 +1,3 @@
+что такое aggregation unit в каталоге метрик??
+роль метрик как enum?
+data в event это??
