@@ -7,6 +7,7 @@ from app.core.exceptions.user_exs import (
     UserNotActiveError,
     UserNotFoundError,
 )
+from app.core.schemas.role import RoleCode, RoleRead
 from app.core.schemas.token import Token
 from app.core.schemas.user import TokenData, UserLoginBody, UserReadResponse, UserWithTokenResponse
 from app.infrastructure.models import User
@@ -21,7 +22,17 @@ class AuthService:
         self.uow = uow
         self.jwt_service = jwt_service
 
-    def create_tokens_for_user(self, user: User) -> Token:
+    async def _authenticate_user(self, email: str, password: str) -> User:
+        user = await self.uow.user_repo.get_by_email(email)
+        if user is None:
+            raise UserNotFoundError
+        if not self.jwt_service.verify_password(password, str(user.password)):
+            raise InvalidPasswordError
+        if not user.isActive:
+            raise UserNotActiveError
+        return user
+
+    def _create_tokens_for_user(self, user: User) -> Token:
         data = {"sub": str(user.id)}
         access_token = self.jwt_service.create_access_token(data=data)
         return Token(accessToken=access_token)
@@ -34,26 +45,28 @@ class AuthService:
             if not user:
                 raise InvalidCredentialsError
             return TokenData(
-                **user.model_dump(),
+                **user.model_dump(exclude={"roles"}),
                 token_type=payload.get("token_type"),
+                roles=[r.code for r in user.roles]
             )
 
-    async def authenticate_user(self, email: str, password: str) -> User:
-        async with self.uow:
-            user = await self.uow.user_repo.get_by_email(email)
-            if user is None:
-                raise UserNotFoundError
-            if not self.jwt_service.verify_password(password, str(user.password)):
-                raise InvalidPasswordError
-            if not user.isActive:
-                raise UserNotActiveError
-            return user
-
     async def login_user(self, login_body: UserLoginBody) -> UserWithTokenResponse:
-        user = await self.authenticate_user(login_body.email, login_body.password)
-        tokens = self.create_tokens_for_user(user)
-        return UserWithTokenResponse(
-            accessToken=tokens.accessToken,
-            expiresIn=tokens.expiresIn,
-            user=UserReadResponse(**user.model_dump()),
-        )
+        async with self.uow:
+            user = await self._authenticate_user(login_body.email, login_body.password)
+            tokens = self._create_tokens_for_user(user)
+
+            return UserWithTokenResponse(
+                user=UserReadResponse(
+                    roles=[
+                        RoleRead(
+                            id=role.id,
+                            code=RoleCode(role.code),
+                            value=role.value,
+                            description=role.description,
+                        )
+                        for role in user.roles
+                    ],
+                    **user.model_dump(exclude={"roles"}),
+                ),
+                **tokens.model_dump(),
+            )

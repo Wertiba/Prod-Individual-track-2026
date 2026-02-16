@@ -5,19 +5,23 @@ from pydantic import EmailStr
 from sqlalchemy import Column, DateTime
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.core.schemas.role import RoleCode
+
 
 class UserRole(SQLModel, table=True):
     __tablename__ = "user_roles"
-
-    user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", primary_key=True, index=True)
     role_id: uuid.UUID = Field(foreign_key="roles.id", primary_key=True)
 
 
 class Role(SQLModel, table=True):
     __tablename__ = "roles"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    value: str
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
+    code: RoleCode = Field(nullable=False, unique=True)
+    value: str = Field(nullable=False)
+    description: str = Field(nullable=True)
 
     users: list["User"] = Relationship(back_populates="roles", link_model=UserRole)
 
@@ -37,4 +41,8 @@ class User(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
 
-    roles: list["Role"] = Relationship(back_populates="users", link_model=UserRole)
+    roles: list["Role"] = Relationship(
+        back_populates="users",
+        sa_relationship_kwargs={"lazy": "selectin"},
+        link_model=UserRole,
+    )

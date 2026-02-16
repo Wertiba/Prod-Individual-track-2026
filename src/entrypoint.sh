@@ -21,7 +21,7 @@ else
 fi
 
 echo "[entrypoint] Creating first admin if not exists..."
-python -m app.actions.first_admin || true
+python -m app.actions.run || true
 
 echo "[entrypoint] Starting application..."
 exec "$@"

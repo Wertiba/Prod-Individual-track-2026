@@ -1,27 +1,20 @@
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Annotated
 from uuid import UUID
 
 from pydantic import AfterValidator, EmailStr, Field, field_serializer
 
 from app.core.schemas.base import PyModel
+from app.core.schemas.role import RoleCode, RoleRead
 from app.core.schemas.token import Token
 from app.core.utils import check_len_password
-
-
-class UserRole(str, Enum):
-    VIEWER = "VIEWER"
-    APPROVER = "APPROVER"
-    EXPERIMENTER = "EXPERIMENTER"
-    ADMIN = "ADMIN"
 
 
 class UserCreateBody(PyModel):
     email: Annotated[EmailStr, Field(max_length=254)]
     password: Annotated[str, AfterValidator(check_len_password)]
     fullName: Annotated[str, Field(min_length=2, max_length=200)]
-    role: Annotated[UserRole, Field(default=UserRole["VIEWER"])]
+    roles: Annotated[list[RoleCode], Field()] | None = None
 
 
 class UserLoginBody(PyModel):
@@ -31,15 +24,15 @@ class UserLoginBody(PyModel):
 
 class UserUpdateBody(PyModel):
     fullName: Annotated[str, Field(min_length=2, max_length=200)]
-    role: UserRole | None = None
+    roles: Annotated[list[RoleCode], Field()] | None = None
     isActive: bool | None = None
 
 
-class UserReadResponse(PyModel):
+class UserData(PyModel):
     id: UUID
     email: EmailStr
     fullName: str
-    role: UserRole
+    roles: list[RoleCode] | None
     isActive: bool
     createdAt: datetime
     updatedAt: datetime
@@ -53,9 +46,13 @@ class UserReadResponse(PyModel):
         return iso_str[:-3] + "Z"
 
 
+class UserReadResponse(UserData):
+    roles: list[RoleRead] | None
+
+
 class UserWithTokenResponse(Token):
     user: UserReadResponse
 
 
-class TokenData(UserReadResponse):
+class TokenData(UserData):
     token_type: str | None

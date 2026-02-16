@@ -21,8 +21,8 @@ async def create(_: AdminUserDep, user_service: UserServiceDep, user_data: UserC
 
 
 @router.get("/me", response_model=UserReadResponse, status_code=status.HTTP_200_OK)
-def get_me(user: CurrentUserDep) -> UserReadResponse:
-    return user
+async def get_me(user: CurrentUserDep, user_service: UserServiceDep) -> UserReadResponse:
+    return await user_service.get_current_by_id(user, user.id)
 
 
 @router.put("/me", response_model=UserReadResponse, status_code=status.HTTP_200_OK)

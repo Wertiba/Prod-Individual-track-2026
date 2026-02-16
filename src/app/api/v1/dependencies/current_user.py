@@ -4,7 +4,7 @@ from fastapi import Depends, Request
 
 from app.api.v1.dependencies.services.auth_service import AuthServiceDep
 from app.core.exceptions.user_exs import ForbiddenError, InvalidCredentialsError
-from app.core.schemas.user import TokenData, UserRole
+from app.core.schemas.user import RoleCode, TokenData
 
 
 async def get_current_user(request: Request, auth_service: AuthServiceDep) -> TokenData:
@@ -22,11 +22,28 @@ async def get_current_user(request: Request, auth_service: AuthServiceDep) -> To
 CurrentUserDep = Annotated[TokenData, Depends(get_current_user)]
 
 
-async def get_admin_user(current_user: CurrentUserDep) -> TokenData:  # noqa: RUF029
-    if current_user.role != UserRole.ADMIN:
-        raise ForbiddenError
+def _user_has_role(user: TokenData, role_code: RoleCode) -> bool:
+    return role_code in user.roles
 
+
+async def get_admin_user(current_user: CurrentUserDep) -> TokenData:  # noqa: RUF029
+    if not _user_has_role(current_user, RoleCode.ADMN):
+        raise ForbiddenError
+    return current_user
+
+
+async def get_experimenter_user(current_user: CurrentUserDep) -> TokenData:  # noqa: RUF029
+    if not _user_has_role(current_user, RoleCode.EXPR):
+        raise ForbiddenError
+    return current_user
+
+
+async def get_approver_user(current_user: CurrentUserDep) -> TokenData:  # noqa: RUF029
+    if not _user_has_role(current_user, RoleCode.APPR):
+        raise ForbiddenError
     return current_user
 
 
 AdminUserDep = Annotated[TokenData, Depends(get_admin_user)]
+ExperimenterUserDep = Annotated[TokenData, Depends(get_experimenter_user)]
+ApproverUserDep = Annotated[TokenData, Depends(get_approver_user)]
