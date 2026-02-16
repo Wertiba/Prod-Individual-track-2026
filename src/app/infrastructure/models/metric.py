@@ -14,18 +14,19 @@ class MetricCatalog(SQLModel, table=True):
     __tablename__ = "metric_catalog"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
-    code: str = Field(unique=True, nullable=False, index=True, max_length=255)
+    code: str = Field(unique=True, nullable=False, index=True, max_length=100)
     name: str = Field(nullable=False, max_length=255)
     isSystem: bool = Field(nullable=False, default=False)
-    description: str = Field(nullable=True, max_length=500)
+    description: str | None = Field(nullable=True, max_length=500)
     calculationConfig: dict | None = Field(sa_column=Column(JSON, nullable=True))
 
     createdBy: uuid.UUID = Field(foreign_key="users.id", nullable=False)
     createdAt: datetime = Field(default_factory=datetime.now)
 
-    creator: "User | None" = Relationship(back_populates="created_catalog_metrics")
+    creator: "User" = Relationship(back_populates="created_catalog_metrics")
 
-    metrics: list["Metric"] | None = Relationship(back_populates="metric_catalog")
+    metrics: list["Metric"] = Relationship(back_populates="metric_catalog")
+    event_catalog: list["EventCatalog"] = Relationship(back_populates="metric")
 
 
 class Metric(SQLModel, table=True):
@@ -36,15 +37,15 @@ class Metric(SQLModel, table=True):
     metricCatalog_code: str = Field(foreign_key="metric_catalog.code", nullable=False)
 
     role: str = Field(nullable=False, default="DEF", max_length=255)
-    time_from: datetime = Field(
+    time_from: datetime | None = Field(
         nullable=True,
         default_factory=lambda: datetime.now(tz=UTC) - timedelta(days=10)
     )
-    time_to: datetime = Field(nullable=True, default_factory=datetime.now)
+    time_to: datetime | None = Field(nullable=True, default_factory=datetime.now)
 
-    window: int = Field(nullable=True, default=864000)
-    threshold: int = Field(nullable=True)
-    action_code: str = Field(nullable=True, foreign_key="guardrail_actions.code")
+    window: int | None = Field(nullable=True, default=864000)
+    threshold: int | None = Field(nullable=True)
+    action_code: str | None = Field(nullable=True, foreign_key="guardrail_actions.code")
 
     addedBy: uuid.UUID = Field(foreign_key="users.id", nullable=False)
     createdAt: datetime = Field(default_factory=datetime.now)
@@ -52,21 +53,20 @@ class Metric(SQLModel, table=True):
     experiment: "Experiment" = Relationship(back_populates="metrics")
     metric_catalog: "MetricCatalog" = Relationship(back_populates="metrics")
     creator: "User" = Relationship(back_populates="added_metrics")
-    guardrail_action: "GuardrailAction | None" = Relationship(back_populates="guardrails")
+    guardrail_action: "GuardrailAction" = Relationship(back_populates="guardrails")
 
-    history: list["MetricHistory"] | None = Relationship(back_populates="metric")
-    event_catalog: list["EventCatalog"] | None = Relationship(back_populates="metrics")
+    history: list["MetricHistory"] = Relationship(back_populates="metric")
 
 
 class GuardrailAction(SQLModel, table=True):
     __tablename__ = "guardrail_actions"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
-    code: str = Field(unique=True, nullable=False, max_length=255, index=True)
+    code: str = Field(unique=True, nullable=False, max_length=100, index=True)
     name: str = Field(nullable=False, max_length=255)
-    description: str = Field(nullable=True, max_length=500)
+    description: str | None = Field(nullable=True, max_length=500)
 
-    guardrails: list["Metric"] | None = Relationship(back_populates="guardrail_action")
+    guardrails: list["Metric"] = Relationship(back_populates="guardrail_action")
 
 
 class MetricHistory(SQLModel, table=True):

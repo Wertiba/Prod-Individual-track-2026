@@ -8,6 +8,7 @@ from app.api.v1.exceptions.api_exs import (
 )
 from app.core.exceptions.base import UnprocessableEntityError
 from app.core.exceptions.flag_exs import FlagAlreadyExistsError, FlagNotFoundError
+from app.core.exceptions.matric_exs import MetricAlreadyExistsError, MetricNotFoundError
 from app.core.exceptions.user_exs import (
     EmailAlreadyExistsError,
     ForbiddenError,
@@ -26,6 +27,10 @@ DOMAIN_TO_API: dict[type, callable] = {
         path=path,
         message="Flag not found",
     ),
+    MetricNotFoundError: lambda path, exc=None: NotFound(
+        path=path,
+        message="Metric not found",
+    ),
     ForbiddenError: lambda path, exc=None: Forbidden(
         path=path,
     ),
@@ -42,6 +47,10 @@ DOMAIN_TO_API: dict[type, callable] = {
     FlagAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,
         message="Flag already exists",
+    ),
+    MetricAlreadyExistsError: lambda path, exc=None: Conflict(
+        path=path,
+        message="Metric already exists",
     ),
     UnprocessableEntityError: lambda path, exc=None: ValidationFailed(
         path=path,

@@ -15,7 +15,7 @@ class Flag(SQLModel, table=True):
     __tablename__ = "flags"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
-    code: str = Field(unique=True, nullable=False, index=True, max_length=255)
+    code: str = Field(unique=True, nullable=False, index=True, max_length=100)
     default: str = Field(nullable=False)
     type: FlagType = Field(nullable=False)
     enabled: bool = Field(default=True)
@@ -29,4 +29,4 @@ class Flag(SQLModel, table=True):
 
     creator: "User" = Relationship(back_populates="created_flags")
 
-    flag_experiments: list["Experiment"] | None = Relationship(back_populates="flag")
+    flag_experiments: list["Experiment"] = Relationship(back_populates="flag")

@@ -44,6 +44,13 @@ async def get_approver_user(current_user: CurrentUserDep) -> TokenData:  # noqa:
     return current_user
 
 
+async def get_any_view(current_user: CurrentUserDep) -> TokenData:  # noqa: RUF029
+    if not any([_user_has_role(current_user, r) for r in [RoleCode.ADMN, RoleCode.EXPR, RoleCode.APPR, RoleCode.VIEW]]):
+        raise ForbiddenError
+    return current_user
+
+
 AdminUserDep = Annotated[TokenData, Depends(get_admin_user)]
 ExperimenterUserDep = Annotated[TokenData, Depends(get_experimenter_user)]
 ApproverUserDep = Annotated[TokenData, Depends(get_approver_user)]
+AnyViewUserDep = Annotated[TokenData, Depends(get_any_view)]

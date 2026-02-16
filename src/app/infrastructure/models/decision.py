@@ -20,4 +20,4 @@ class Decision(SQLModel, table=True):
     user: "User" = Relationship(back_populates="decisions")
     variant: "Variant" = Relationship(back_populates="decisions")
 
-    events: list["Event"] | None = Relationship(back_populates="decision")
+    events: list["Event"] = Relationship(back_populates="decision")

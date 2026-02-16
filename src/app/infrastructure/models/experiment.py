@@ -7,7 +7,7 @@ from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 from app.core.schemas.experiment import ExperimentStatus
 
 if TYPE_CHECKING:
-    from app.infrastructure.models import Flag, User
+    from app.infrastructure.models import Flag, Metric, User
     from app.infrastructure.models.decision import Decision
 
 
@@ -15,14 +15,14 @@ class Experiment(SQLModel, table=True):
     __tablename__ = "experiments"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
-    code: str = Field(unique=True, nullable=False, index=True, max_length=255)
+    code: str = Field(unique=True, nullable=False, index=True, max_length=100)
     flag_code: str = Field(foreign_key="flags.code", nullable=False)
 
     name: str = Field(nullable=False, max_length=255)
     status: ExperimentStatus = Field(nullable=False, max_length=255)
     version: float = Field(nullable=False, default=1.0)
     part: int = Field(nullable=False, default=0)
-    target: str = Field(nullable=True, max_length=500)
+    target: str | None = Field(nullable=True, max_length=500)
     isCurrent: bool = Field(nullable=False, default=True)
     description: str = Field(nullable=False, max_length=255)
 
@@ -32,7 +32,8 @@ class Experiment(SQLModel, table=True):
     creator: "User" = Relationship(back_populates="created_experiments")
     flag: "Flag" = Relationship(back_populates="flag_experiments")
 
-    variants: list["Variant"] | None = Relationship(back_populates="experiment")
+    metrics: list["Metric"] = Relationship(back_populates="experiment")
+    variants: list["Variant"] = Relationship(back_populates="experiment")
 
 
 class Variant(SQLModel, table=True):
@@ -53,4 +54,4 @@ class Variant(SQLModel, table=True):
 
     experiment: "Experiment" = Relationship(back_populates="variants")
 
-    decisions: list["Decision"] | None = Relationship(back_populates="variant")
+    decisions: list["Decision"] = Relationship(back_populates="variant")

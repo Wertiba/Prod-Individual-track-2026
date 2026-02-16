@@ -42,9 +42,9 @@ class User(SQLModel, table=True):
     fullName: str = Field(nullable=False)
     isActive: bool = Field(default=True)
 
-    required: int = Field(nullable=True)
-    useFallback: bool = Field(nullable=True)
-    strategy: str = Field(nullable=True, max_length=255)
+    required: int | None = Field(nullable=True)
+    useFallback: bool | None = Field(nullable=True)
+    strategy: str | None = Field(nullable=True, max_length=255)
 
     createdAt: datetime = Field(default_factory=datetime.now)
     updatedAt: datetime = Field(
@@ -57,9 +57,9 @@ class User(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "selectin"},
         link_model=UserRole,
     )
-    created_catalog_metrics: list["MetricCatalog"] | None = Relationship(back_populates="creator")
-    added_metrics: list["Metric"] | None = Relationship(back_populates="creator")
-    created_flags: list["Flag"] | None = Relationship(back_populates="creator")
-    created_experiments: list["Experiment"] | None = Relationship(back_populates="creator")
-    decisions: list["Decision"] | None = Relationship(back_populates="user")
-    created_catalog_events: list["EventCatalog"] | None = Relationship(back_populates="creator")
+    created_catalog_metrics: list["MetricCatalog"] = Relationship(back_populates="creator")
+    added_metrics: list["Metric"] = Relationship(back_populates="creator")
+    created_flags: list["Flag"] = Relationship(back_populates="creator")
+    created_experiments: list["Experiment"] = Relationship(back_populates="creator")
+    decisions: list["Decision"] = Relationship(back_populates="user")
+    created_catalog_events: list["EventCatalog"] = Relationship(back_populates="creator")

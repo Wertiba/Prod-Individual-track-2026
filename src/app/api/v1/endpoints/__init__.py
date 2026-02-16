@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from .auth import router as auth_router
 from .flags import router as flag_router
 from .health import router as ping_router
+from .metric_catalog import router as metric_catalog_router
 from .users import router as users_router
 
 router = APIRouter(prefix="/v1")
@@ -12,3 +13,4 @@ router.include_router(ping_router)
 router.include_router(auth_router)
 router.include_router(users_router)
 router.include_router(flag_router)
+router.include_router(metric_catalog_router)
