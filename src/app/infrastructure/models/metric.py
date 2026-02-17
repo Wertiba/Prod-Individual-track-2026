@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class MetricCatalog(SQLModel, table=True):
     __tablename__ = "metric_catalog"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     code: str = Field(unique=True, nullable=False, index=True, max_length=100)
     name: str = Field(nullable=False, max_length=255)
     isSystem: bool = Field(nullable=False, default=False)
@@ -24,7 +24,7 @@ class MetricCatalog(SQLModel, table=True):
     description: str | None = Field(nullable=True, max_length=500)
     calculationConfig: dict | None = Field(sa_column=Column(JSON, nullable=True))
 
-    createdBy: uuid.UUID = Field(foreign_key="users.id", nullable=False)
+    createdBy: uuid.UUID | None = Field(foreign_key="users.id", nullable=True)
     createdAt: datetime = Field(default_factory=datetime.now)
 
     creator: "User" = Relationship(back_populates="created_catalog_metrics")
@@ -36,7 +36,7 @@ class MetricCatalog(SQLModel, table=True):
 class Metric(SQLModel, table=True):
     __tablename__ = "metrics"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     experiment_id: uuid.UUID = Field(foreign_key="experiments.id", nullable=False)
     metricCatalog_code: str = Field(foreign_key="metric_catalog.code", nullable=False)
 
@@ -65,7 +65,7 @@ class Metric(SQLModel, table=True):
 class GuardrailAction(SQLModel, table=True):
     __tablename__ = "guardrail_actions"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     code: str = Field(unique=True, nullable=False, max_length=100, index=True)
     name: str = Field(nullable=False, max_length=255)
     description: str | None = Field(nullable=True, max_length=500)
@@ -76,7 +76,7 @@ class GuardrailAction(SQLModel, table=True):
 class MetricHistory(SQLModel, table=True):
     __tablename__ = "metric_history"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     metric_id: uuid.UUID = Field(foreign_key="metrics.id", nullable=False)
     history: dict | None = Field(sa_column=Column(JSON, nullable=True))
     workedAt: datetime = Field(default_factory=datetime.now)

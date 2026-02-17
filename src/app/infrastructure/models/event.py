@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class EventCatalog(SQLModel, table=True):
     __tablename__ = 'event_catalog'
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     code: str = Field(unique=True, max_length=100, nullable=False, index=True)
     metricCatalog_code: str = Field(foreign_key="metric_catalog.code", nullable=False)
 
@@ -35,7 +35,7 @@ class EventCatalog(SQLModel, table=True):
 class Event(SQLModel, table=True):
     __tablename__ = 'events'
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     eventKey: str = Field(nullable=False, unique=True, max_length=255)
     decision_id: uuid.UUID = Field(foreign_key="decisions.id", nullable=False)
     eventCatalog_code: str = Field(foreign_key="event_catalog.code", nullable=False)

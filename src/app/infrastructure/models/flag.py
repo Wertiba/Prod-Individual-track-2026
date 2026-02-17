@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class Flag(SQLModel, table=True):
     __tablename__ = "flags"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     code: str = Field(unique=True, nullable=False, index=True, max_length=100)
     default: str = Field(nullable=False)
     type: FlagType = Field(nullable=False)

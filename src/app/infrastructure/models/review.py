@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 class Approver(SQLModel, table=True):
     __tablename__ = "approvers"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     experimenter_id: uuid.UUID = Field(foreign_key="users.id")
     approver_id: uuid.UUID = Field(foreign_key="users.id")
     addedAt: datetime = Field(default_factory=datetime.now)
@@ -37,7 +37,7 @@ class Approver(SQLModel, table=True):
 class Review(SQLModel, table=True):
     __tablename__ = "reviews"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     experiment_code: str = Field(foreign_key="experiments.code")
     result: ReviewResult = Field(nullable=False)
     comment: str = Field(nullable=True, max_length=500)
@@ -52,7 +52,7 @@ class Review(SQLModel, table=True):
 class ReviewResultsHistory(SQLModel, table=True):
     __tablename__ = "reviews_results_history"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     approved: int = Field(nullable=False, default=0)
     rejected: int = Field(nullable=False, default=0)
     deleted: int = Field(nullable=False, default=0)

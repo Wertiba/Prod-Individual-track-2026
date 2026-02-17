@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class Experiment(SQLModel, table=True):
     __tablename__ = "experiments"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     code: str = Field(unique=True, nullable=False, index=True, max_length=100)
     flag_code: str = Field(foreign_key="flags.code", nullable=False)
 
@@ -41,7 +41,7 @@ class Experiment(SQLModel, table=True):
 class Variant(SQLModel, table=True):
     __tablename__ = "variants"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
     experiment_code: str = Field(foreign_key="experiments.code", nullable=False)
     name: str = Field(nullable=False, max_length=255)
     value: str = Field(nullable=False, max_length=255)

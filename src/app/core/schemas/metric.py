@@ -34,7 +34,7 @@ class MetricCreateBody(PyModel):
 class MetricData(MetricCreateBody):
     id: UUID
     isSystem: bool
-    createdBy: UUID
+    createdBy: UUID | None = None
     createdAt: datetime
 
 

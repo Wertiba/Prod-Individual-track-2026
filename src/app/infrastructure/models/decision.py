@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class Decision(SQLModel, table=True):
     __tablename__ = "decisions"
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True, unique=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", nullable=False)
     variant_id: uuid.UUID = Field(foreign_key="variants.id", nullable=False)
     isRequested: bool = Field(default=False, nullable=False)
