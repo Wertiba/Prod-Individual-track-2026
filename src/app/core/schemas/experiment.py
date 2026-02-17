@@ -31,13 +31,16 @@ class VariantData(VariantCreateBody):
     updatedAt: datetime
 
 
-class ExperimentCreateData(PyModel):
+class ExperimentUpdateBody(PyModel):
     code: Annotated[str, Field(max_length=255)]
-    flag_code: Annotated[str, Field(max_length=255)]
     name: Annotated[str, Field(max_length=255)]
-    part: Annotated[int, Field(le=100)]
     target: Annotated[str | None, Field(max_length=255)] = None
     description: Annotated[str | None, Field(max_length=500)] = None
+
+
+class ExperimentCreateData(ExperimentUpdateBody):
+    flag_code: Annotated[str, Field(max_length=255)]
+    part: Annotated[int, Field(le=100)]
     variants: list[VariantCreateBody]
 
 
@@ -60,14 +63,16 @@ class ExperimentCreateBody(ExperimentCreateData):
         return self
 
 
-class ExperimentData(ExperimentCreateData):
+class ExperimentSetStatusBody(PyModel):
     id: UUID
+
+
+class ExperimentData(ExperimentCreateData, ExperimentSetStatusBody):
     status: ExperimentStatus
     version: float
     isCurrent: bool
     createdBy: UUID
     createdAt: datetime
-    # updatedAt: datetime
     variants: list[VariantData]
 
 

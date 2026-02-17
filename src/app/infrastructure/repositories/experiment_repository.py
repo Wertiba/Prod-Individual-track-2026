@@ -3,9 +3,10 @@ from uuid import UUID
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlmodel import select
+from sqlmodel import select, update
 
 from app.core.exceptions.base import RepositoryError
+from app.core.schemas.experiment import ExperimentStatus
 from app.infrastructure.models import Experiment, Variant
 from app.infrastructure.repositories import BaseRepository
 
@@ -43,5 +44,31 @@ class ExperimentRepository(BaseRepository[Experiment]):
                 .limit(limit)
             )
             return list(result.scalars().all())
+        except SQLAlchemyError as e:
+            raise RepositoryError("Database error") from e
+
+    async def set_status(self, id_: UUID, new_status: ExperimentStatus) -> None:
+        stmt = update(Experiment).where(Experiment.id == id_).values(status=new_status) # noqa
+
+        try:
+            await self.session.execute(stmt)
+            await self.session.flush()
+        except SQLAlchemyError as e:
+            raise RepositoryError("Database error") from e
+
+    async def check_flag(
+            self,
+            flag_code: str,
+            statuses: list[ExperimentStatus] | None = None
+    ) -> list[Experiment] | None:
+        if statuses is None:
+            statuses = [ExperimentStatus.RUNNING, ExperimentStatus.PAUSED]
+        try:
+            result = await self.session.execute(
+                select(Experiment)
+                .options(selectinload(Experiment.variants)) # noqa
+                .where(Experiment.flag_code == flag_code, Experiment.ststus in statuses)  # noqa
+            )
+            return result.scalar_one_or_none()
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e

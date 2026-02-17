@@ -1,9 +1,9 @@
 from uuid import UUID
 
-from app.core.exceptions.base import DuplicateError
+from app.core.exceptions.base import DuplicateError, UnprocessableEntityError
 from app.core.exceptions.experiment_exs import ExperimentAlreadyExistsError, ExperimentNotFoundError
 from app.core.exceptions.flag_exs import FlagNotFoundError
-from app.core.schemas.experiment import ExperimentCreateBody, ExperimentReadResponse, VariantData
+from app.core.schemas.experiment import ExperimentCreateBody, ExperimentReadResponse, ExperimentStatus, VariantData
 from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
 from app.infrastructure.models import Experiment, Variant
@@ -58,3 +58,15 @@ class ExperimentService:
                 raise ExperimentNotFoundError
 
             return self._convert_to_response(experiment)
+
+    async def set_status(self, experiment_id: UUID,
+                         status: ExperimentStatus, old: set[ExperimentStatus]) -> ExperimentReadResponse:
+        experiment = await self.get_by_id(experiment_id)
+        if experiment and experiment.status in old:
+            async with self.uow:
+                await self.uow.experiment_repo.set_status(experiment_id, status)
+            return ExperimentReadResponse(**experiment.model_dump(exclude={"status"}), status=status)
+        raise UnprocessableEntityError
+
+    async def set_status_review(self, experiment_id: UUID) -> ExperimentReadResponse:
+        return await self.set_status(experiment_id, ExperimentStatus.IN_REVIEW, {ExperimentStatus.DRAFT})
