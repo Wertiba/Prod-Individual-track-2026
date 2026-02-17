@@ -12,7 +12,7 @@ class FlagType(str, Enum):
 
 
 class FlagCreateBody(PyModel):
-    key: str
+    code: str
     default: str
     type: FlagType
 

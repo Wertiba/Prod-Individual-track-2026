@@ -16,8 +16,8 @@ async def get_all(_: AnyViewUserDep, flag_service: FlagServiceDep, pagination: P
 
 
 @router.post("", response_model=FlagReadResponse, status_code=status.HTTP_201_CREATED)
-async def create(_: AdminUserDep, flag_service: FlagServiceDep, flag_data: FlagCreateBody) -> Flag | None:
-    return await flag_service.create(flag_data)
+async def create(user_data: AdminUserDep, flag_service: FlagServiceDep, flag_data: FlagCreateBody) -> Flag | None:
+    return await flag_service.create(user_data, flag_data)
 
 
 @router.get("/{id}", response_model=FlagReadResponse, status_code=status.HTTP_200_OK)

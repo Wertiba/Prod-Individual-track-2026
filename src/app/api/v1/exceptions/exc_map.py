@@ -7,12 +7,14 @@ from app.api.v1.exceptions.api_exs import (
     ValidationFailed,
 )
 from app.core.exceptions.base import UnprocessableEntityError
+from app.core.exceptions.experiment_exs import ExperimentAlreadyExistsError, ExperimentNotFoundError
 from app.core.exceptions.flag_exs import FlagAlreadyExistsError, FlagNotFoundError
 from app.core.exceptions.matric_exs import MetricAlreadyExistsError, MetricNotFoundError
 from app.core.exceptions.user_exs import (
     EmailAlreadyExistsError,
     ForbiddenError,
     InvalidCredentialsError,
+    InvalidFallbackDataError,
     InvalidPasswordError,
     UserNotActiveError,
     UserNotFoundError,
@@ -30,6 +32,10 @@ DOMAIN_TO_API: dict[type, callable] = {
     MetricNotFoundError: lambda path, exc=None: NotFound(
         path=path,
         message="Metric not found",
+    ),
+    ExperimentNotFoundError: lambda path, exc=None: NotFound(
+        path=path,
+        message="Experiment not found",
     ),
     ForbiddenError: lambda path, exc=None: Forbidden(
         path=path,
@@ -52,7 +58,14 @@ DOMAIN_TO_API: dict[type, callable] = {
         path=path,
         message="Metric already exists",
     ),
+    ExperimentAlreadyExistsError: lambda path, exc=None: Conflict(
+        path=path,
+        message="Experiment already exists",
+    ),
     UnprocessableEntityError: lambda path, exc=None: ValidationFailed(
+        path=path,
+    ),
+    InvalidFallbackDataError: lambda path, exc=None: ValidationFailed(
         path=path,
     ),
     UserNotActiveError: lambda path, exc=None: Inactive(

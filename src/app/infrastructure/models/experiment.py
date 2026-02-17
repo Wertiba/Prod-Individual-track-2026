@@ -20,9 +20,9 @@ class Experiment(SQLModel, table=True):
     flag_code: str = Field(foreign_key="flags.code", nullable=False)
 
     name: str = Field(nullable=False, max_length=255)
-    status: ExperimentStatus = Field(nullable=False, max_length=255)
+    status: ExperimentStatus = Field(nullable=False, max_length=255, default=ExperimentStatus.DRAFT)
     version: float = Field(nullable=False, default=1.0)
-    part: int = Field(nullable=False, default=0)
+    part: int = Field(nullable=False, default=0, le=100)
     target: str | None = Field(nullable=True, max_length=500)
     isCurrent: bool = Field(nullable=False, default=True)
     description: str = Field(nullable=False, max_length=255)
@@ -45,10 +45,9 @@ class Variant(SQLModel, table=True):
     experiment_code: str = Field(foreign_key="experiments.code", nullable=False)
     name: str = Field(nullable=False, max_length=255)
     value: str = Field(nullable=False, max_length=255)
-    weight: float = Field(nullable=False, default=0.0)
+    weight: int = Field(nullable=False, default=0)
     isControl: bool = Field(nullable=False, default=True)
 
-    createdAt: datetime = Field(default_factory=datetime.now)
     updatedAt: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),

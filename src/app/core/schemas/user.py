@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, Self
 from uuid import UUID
 
-from pydantic import AfterValidator, EmailStr, Field, field_serializer
+from pydantic import AfterValidator, EmailStr, Field, field_serializer, model_validator
 
 from app.core.schemas.base import PyModel
 from app.core.schemas.role import RoleCode, RoleRead
@@ -20,9 +20,9 @@ class UserUpdateBody(PyModel):
     roles: list[RoleCode] | None = None
     isActive: bool | None = None
 
-    required: int | None
-    useFallback: bool | None = False
-    strategy: Annotated[NoFallbackStrategy | None, Field(max_length=255)] = NoFallbackStrategy.ANY
+    required: int | None = None
+    useFallback: bool | None = None
+    strategy: Annotated[NoFallbackStrategy | None, Field(max_length=255)] = None
 
 
 class UserCreateBody(UserUpdateBody):

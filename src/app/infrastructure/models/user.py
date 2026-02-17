@@ -44,9 +44,9 @@ class User(SQLModel, table=True):
     fullName: str = Field(nullable=False)
     isActive: bool = Field(default=True)
 
-    required: int | None = Field(nullable=True)
-    useFallback: bool | None = Field(nullable=True)
-    strategy: NoFallbackStrategy | None = Field(nullable=True, max_length=255)
+    required: int | None = Field(nullable=True, default=None)
+    useFallback: bool | None = Field(nullable=True, default=None)
+    strategy: NoFallbackStrategy | None = Field(nullable=True, max_length=255, default=None)
 
     createdAt: datetime = Field(default_factory=datetime.now)
     updatedAt: datetime = Field(

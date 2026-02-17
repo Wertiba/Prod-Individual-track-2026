@@ -6,6 +6,7 @@ from app.core.exceptions.flag_exs import (
     FlagNotFoundError,
 )
 from app.core.schemas.flag import FlagCreateBody, FlagReadResponse, FlagUpdateBody
+from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
 from app.infrastructure.models import Flag
 from app.infrastructure.unit_of_work import UnitOfWork
@@ -15,10 +16,10 @@ class FlagService:
     def __init__(self, uow: UnitOfWork):
         self.uow = uow
 
-    async def create(self, flag_data: FlagCreateBody) -> FlagReadResponse:
+    async def create(self, user_data: TokenData, flag_data: FlagCreateBody) -> FlagReadResponse:
         async with self.uow:
             try:
-                flag = await self.uow.flag_repo.add(Flag(**flag_data.model_dump()))
+                flag = await self.uow.flag_repo.add(Flag(**flag_data.model_dump(), createdBy=user_data.id))
                 return FlagReadResponse(**flag.model_dump())
             except DuplicateError:
                 raise FlagAlreadyExistsError from DuplicateError

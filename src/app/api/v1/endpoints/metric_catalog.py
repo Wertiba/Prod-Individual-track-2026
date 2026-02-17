@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from app.api.v1.dependencies import AdminUserDep, AnyViewUserDep, FlagServiceDep, MetricServiceDep, PaginationDep
+from app.api.v1.dependencies import AdminUserDep, AnyViewUserDep, MetricServiceDep, PaginationDep
 from app.core.schemas.metric import MetricCreateBody, MetricCreateResponse
 from app.core.utils import Page
 

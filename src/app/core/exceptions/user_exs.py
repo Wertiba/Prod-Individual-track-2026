@@ -23,3 +23,7 @@ class InvalidCredentialsError(EntityError):
 
 class UserNotActiveError(EntityError):
     pass
+
+
+class InvalidFallbackDataError(EntityError):
+    pass
