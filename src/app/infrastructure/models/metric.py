@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
+from app.core.schemas.metric import AggregationUnit, MetricType
+
 if TYPE_CHECKING:
     from app.infrastructure.models import User
     from app.infrastructure.models.event import EventCatalog
@@ -17,6 +19,8 @@ class MetricCatalog(SQLModel, table=True):
     code: str = Field(unique=True, nullable=False, index=True, max_length=100)
     name: str = Field(nullable=False, max_length=255)
     isSystem: bool = Field(nullable=False, default=False)
+    type: MetricType = Field(nullable=False)
+    aggregationUnit: AggregationUnit = Field(nullable=False, default=AggregationUnit.EVENT)
     description: str | None = Field(nullable=True, max_length=500)
     calculationConfig: dict | None = Field(sa_column=Column(JSON, nullable=True))
 
