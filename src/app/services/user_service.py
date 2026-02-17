@@ -63,11 +63,7 @@ class UserService:
             hashed_password = self.jwt_service.get_password_hash(user_data.password)
             role_codes = [code.value for code in user_data.roles] if user_data.roles is not None else None
             roles = await self._validate_roles(role_codes)
-            user = User(
-                email=user_data.email,
-                password=hashed_password,
-                fullName=user_data.fullName
-            )
+            user = User(**user_data.model_dump(exclude={"password", "roles"}), password=hashed_password)
             created_user = await self.uow.user_repo.add(user)
             if roles:
                 await self.uow.user_repo.set_roles(created_user.id, [role.id for role in roles])

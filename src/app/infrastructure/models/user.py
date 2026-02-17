@@ -6,6 +6,7 @@ from pydantic import EmailStr
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
 from app.core.schemas.role import RoleCode
+from app.core.schemas.user import NoFallbackStrategy
 
 if TYPE_CHECKING:
     from app.infrastructure.models.decision import Decision
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
     from app.infrastructure.models.experiment import Experiment
     from app.infrastructure.models.flag import Flag
     from app.infrastructure.models.metric import Metric, MetricCatalog
+    from app.infrastructure.models.review import Approver
 
 
 class UserRole(SQLModel, table=True):
@@ -44,7 +46,7 @@ class User(SQLModel, table=True):
 
     required: int | None = Field(nullable=True)
     useFallback: bool | None = Field(nullable=True)
-    strategy: str | None = Field(nullable=True, max_length=255)
+    strategy: NoFallbackStrategy | None = Field(nullable=True, max_length=255)
 
     createdAt: datetime = Field(default_factory=datetime.now)
     updatedAt: datetime = Field(
@@ -63,3 +65,16 @@ class User(SQLModel, table=True):
     created_experiments: list["Experiment"] = Relationship(back_populates="creator")
     decisions: list["Decision"] = Relationship(back_populates="user")
     created_catalog_events: list["EventCatalog"] = Relationship(back_populates="creator")
+
+    approvers_as_experimenter: list["Approver"] = Relationship(
+        back_populates="experimenter",
+        sa_relationship_kwargs={
+            "foreign_keys": "Approver.experimenter_id"
+        }
+    )
+    approvers_as_approver: list["Approver"] = Relationship(
+        back_populates="approver",
+        sa_relationship_kwargs={
+            "foreign_keys": "Approver.approver_id"
+        }
+    )

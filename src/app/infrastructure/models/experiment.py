@@ -9,6 +9,7 @@ from app.core.schemas.experiment import ExperimentStatus
 if TYPE_CHECKING:
     from app.infrastructure.models import Flag, Metric, User
     from app.infrastructure.models.decision import Decision
+    from app.infrastructure.models.review import Review
 
 
 class Experiment(SQLModel, table=True):
@@ -34,6 +35,7 @@ class Experiment(SQLModel, table=True):
 
     metrics: list["Metric"] = Relationship(back_populates="experiment")
     variants: list["Variant"] = Relationship(back_populates="experiment")
+    reviews: list["Review"] = Relationship(back_populates="experiment")
 
 
 class Variant(SQLModel, table=True):

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Annotated
 from uuid import UUID
 
@@ -10,22 +11,29 @@ from app.core.schemas.token import Token
 from app.core.utils import check_len_password
 
 
-class UserCreateBody(PyModel):
+class NoFallbackStrategy(str, Enum):
+    ANY = "ANY"
+
+
+class UserUpdateBody(PyModel):
+    fullName: Annotated[str, Field(min_length=2, max_length=200)]
+    roles: list[RoleCode] | None = None
+    isActive: bool | None = None
+
+    required: int | None
+    useFallback: bool | None = False
+    strategy: Annotated[NoFallbackStrategy | None, Field(max_length=255)] = NoFallbackStrategy.ANY
+
+
+class UserCreateBody(UserUpdateBody):
     email: Annotated[EmailStr, Field(max_length=254)]
     password: Annotated[str, AfterValidator(check_len_password)]
-    fullName: Annotated[str, Field(min_length=2, max_length=200)]
-    roles: Annotated[list[RoleCode], Field()] | None = None
+    isActive: bool = True
 
 
 class UserLoginBody(PyModel):
     email: str
     password: str
-
-
-class UserUpdateBody(PyModel):
-    fullName: Annotated[str, Field(min_length=2, max_length=200)]
-    roles: Annotated[list[RoleCode], Field()] | None = None
-    isActive: bool | None = None
 
 
 class UserData(PyModel):
@@ -34,6 +42,11 @@ class UserData(PyModel):
     fullName: str
     roles: list[RoleCode] | None
     isActive: bool
+
+    required: int | None
+    useFallback: bool | None
+    strategy: NoFallbackStrategy | None
+
     createdAt: datetime
     updatedAt: datetime
 
