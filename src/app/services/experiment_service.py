@@ -14,6 +14,14 @@ class ExperimentService:
     def __init__(self, uow: UnitOfWork):
         self.uow = uow
 
+    @staticmethod
+    def _convert_to_response(experiment: Experiment) -> ExperimentReadResponse:
+        variants = [VariantData(**v.model_dump()) for v in experiment.variants]
+        return ExperimentReadResponse(
+            **experiment.model_dump(),
+            variants=variants
+        )
+
     async def create(self, user_data: TokenData, experiment_data: ExperimentCreateBody) -> ExperimentReadResponse:
         async with self.uow:
             try:
@@ -35,15 +43,18 @@ class ExperimentService:
 
     async def get_all_experiments(self, pagination: PaginationParams) -> Page[ExperimentReadResponse]:
         async with self.uow:
-            experiments = await self.uow.experiment_repo.get_paginated(offset=pagination.offset, limit=pagination.limit)
-            valid = [ExperimentReadResponse(**u.model_dump()) for u in experiments]
+            experiments = await self.uow.experiment_repo.get_paginated_with_variants(
+                offset=pagination.offset,
+                limit=pagination.limit
+            )
+            valid = [self._convert_to_response(e) for e in experiments]
             total = await self.uow.experiment_repo.count()
             return Page.build(items=valid, total=total, pagination=pagination)
 
-    async def get_by_id(self, experiment_id: UUID) -> ExperimentReadResponse | None:
+    async def get_by_id(self, experiment_id: UUID) -> ExperimentReadResponse:
         async with self.uow:
-            experiment_exists = await self.uow.experiment_repo.get_by_id(experiment_id)
-            if not experiment_exists:
+            experiment = await self.uow.experiment_repo.get_by_id_with_variants(experiment_id)
+            if not experiment:
                 raise ExperimentNotFoundError
 
-            return ExperimentReadResponse(**experiment_exists.model_dump())
+            return self._convert_to_response(experiment)
