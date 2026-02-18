@@ -70,6 +70,19 @@ class ExperimentRepository(BaseRepository[Experiment]):
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
 
+    # async def get_active_by_flag(self, code: str) -> Experiment | None:
+    #     try:
+    #         result = await self.session.execute(
+    #             select(Experiment)
+    #             .options(selectinload(Experiment.variants)) # noqa
+    #             .where(Experiment.flag_code == code)  # noqa
+    #             .where(Experiment.isCurrent == True)    # noqa
+    #             .where(Experiment.status in [ExperimentStatus.RUNNING])
+    #         )
+    #         return result.scalar_one_or_none()
+    #     except SQLAlchemyError as e:
+    #         raise RepositoryError("Database error") from e
+
     async def set_status(self, id_: UUID, new_status: ExperimentStatus) -> None:
         stmt = update(Experiment).where(Experiment.id == id_).values(status=new_status) # noqa
 

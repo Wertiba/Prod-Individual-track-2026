@@ -20,7 +20,7 @@ class DecisionRepository(BaseRepository[Decision]):
             .join(Variant.experiment)
             .where(
                 Experiment.flag_code == flag_code,
-                Experiment.status == ExperimentStatus.RUNNING,
+                Experiment.status in [ExperimentStatus.RUNNING],
                 Experiment.isCurrent == True,
                 Decision.user_id == user_id,
             )

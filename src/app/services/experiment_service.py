@@ -1,9 +1,11 @@
+import random
 from collections.abc import Awaitable, Callable
 from uuid import UUID
 
 from app.core.exceptions.base import DuplicateError, UnprocessableEntityError
 from app.core.exceptions.experiment_exs import ExperimentAlreadyExistsError, ExperimentNotFoundError
 from app.core.exceptions.flag_exs import FlagNotFoundError
+from app.core.schemas.decision import DecisionBody, DecisionData, DecisionResponse
 from app.core.schemas.experiment import (
     ExperimentCreateBody,
     ExperimentHistoryResponse,
@@ -15,7 +17,7 @@ from app.core.schemas.experiment import (
 )
 from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
-from app.infrastructure.models import Experiment, Variant
+from app.infrastructure.models import Decision, Experiment, Variant
 from app.infrastructure.unit_of_work import UnitOfWork
 
 
@@ -37,6 +39,54 @@ class ExperimentService:
         if not experiment:
             raise ExperimentNotFoundError
         return experiment
+
+    async def _generate_decisions(self, experiment_id: UUID) -> list[Decision]:
+        secure_random = random.SystemRandom()
+        async with self.uow:
+            experiment = await self.uow.experiment_repo.get_by_id_with_variants(experiment_id)
+            if not experiment:
+                raise ExperimentNotFoundError
+
+            users = await self.uow.user_repo.get_all()
+            if not users:
+                return []
+
+            total_users = len(users)
+            participants_count = int(total_users * experiment.part / 100)
+
+            if participants_count == 0:
+                return []
+
+            weights = [user.exp_index for user in users]
+            participating_users = secure_random.choices(
+                users,
+                weights=weights,
+                k=participants_count
+            )
+
+            variants = list(experiment.variants)
+            variant_pool: list[Variant] = []
+            for variant in variants:
+                variant_pool.extend([variant] * variant.weight)
+
+            decisions: list[Decision] = []
+            for i, user in enumerate(participating_users):
+                selected_variant = variant_pool[i % len(variant_pool)]
+
+                existing = await self.uow.decision_repo.get_by_user_and_flag(
+                    user.id,
+                    experiment.flag_code
+                )
+                if not existing:
+                    decision = Decision(
+                        user_id=user.id,
+                        variant_id=selected_variant.id,
+                        isRequested=False,
+                        user=user,
+                        variant=selected_variant,
+                    )
+                    decisions.append(decision)
+        return decisions
 
     async def create(self, user_data: TokenData, experiment_data: ExperimentCreateBody) -> ExperimentReadResponse:
         async with self.uow:
@@ -108,4 +158,27 @@ class ExperimentService:
             raise UnprocessableEntityError
 
     async def set_status_review(self, code: str) -> ExperimentReadResponse:
-        return await self.set_status(code, ExperimentStatus.IN_REVIEW, {ExperimentStatus.DRAFT})
+        exp = await self.get_by_code(code)
+        # decisions = await self._generate_decisions(exp.id)
+        # return await self.set_status(code, ExperimentStatus.IN_REVIEW, {ExperimentStatus.DRAFT})
+
+    async def get_decisions(self, data: DecisionBody) -> DecisionResponse:
+        decisions: list[DecisionData] = []
+        user_id = data.user_id
+
+        async with self.uow:
+            for code in data.flag_codes:
+                result = await self.uow.decision_repo.get_by_user_and_flag(user_id, code)
+                if not result:
+                    flag = await self.uow.flag_repo.get_by_code(code)
+                    decisions.append(DecisionData(user_id=user_id, flag_code=code, value=flag.default))
+                    continue
+                decisions.append(DecisionData(
+                    user_id=user_id,
+                    flag_code=code,
+                    experiment_code=result.variant.experiment.code,
+                    variant=VariantData(**result.variant.model_dump()),
+                    decision_id=result.id,
+                    value=result.variant.value
+                ))
+        return DecisionResponse(items=decisions)

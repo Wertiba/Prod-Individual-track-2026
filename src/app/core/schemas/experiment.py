@@ -79,6 +79,7 @@ class ExperimentSetStatusBody(PyModel):
 
 
 class ExperimentData(ExperimentCreateData, ExperimentSetStatusBody):
+    id: UUID
     status: ExperimentStatus
     version: float
     isCurrent: bool

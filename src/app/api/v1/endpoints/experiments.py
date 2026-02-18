@@ -43,7 +43,19 @@ async def update_current(user_data: ExperimenterUserDep, code: str, experiment_s
     return await experiment_service.update(code, user_data, experiment_data)
 
 
-@router.post("/status/review", response_model=ExperimentReadResponse, status_code=status.HTTP_200_OK)
+@router.post("/status/review", response_model=ExperimentReadResponse, status_code=status.HTTP_202_ACCEPTED)
 async def to_review(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
+                    data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
+    return await experiment_service.set_status_review(data.code)
+
+
+@router.get("/status/review-results", response_model=None, status_code=status.HTTP_200_OK)
+async def review_results(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
+                    data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
+    return await experiment_service.set_status_review(data.code)
+
+
+@router.post("/status/stop-review", response_model=ExperimentReadResponse, status_code=status.HTTP_200_OK)
+async def stop_review(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
                     data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
     return await experiment_service.set_status_review(data.code)
