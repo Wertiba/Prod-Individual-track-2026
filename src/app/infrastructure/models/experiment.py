@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 from app.core.schemas.experiment import ExperimentStatus
 
@@ -21,8 +21,8 @@ class Experiment(SQLModel, table=True):
 
     name: str = Field(nullable=False, max_length=255)
     status: ExperimentStatus = Field(nullable=False, max_length=255, default=ExperimentStatus.DRAFT)
-    version: float = Field(nullable=False, default=1.0)
-    part: int = Field(nullable=False, default=0, le=100)
+    version: float = Field(nullable=False, default=1.0, ge=0)
+    part: int = Field(nullable=False, default=0, le=100, ge=0)
     target: str | None = Field(nullable=True, max_length=500)
     isCurrent: bool = Field(nullable=False, default=True)
     description: str = Field(nullable=False, max_length=255)
@@ -45,7 +45,7 @@ class Variant(SQLModel, table=True):
     experiment_id: uuid.UUID = Field(foreign_key="experiments.id", nullable=False)
     name: str = Field(nullable=False, max_length=255)
     value: str = Field(nullable=False, max_length=255)
-    weight: int = Field(nullable=False, default=0)
+    weight: int = Field(nullable=False, default=0, ge=0)
     isControl: bool = Field(nullable=False, default=True)
 
     experiment: "Experiment" = Relationship(back_populates="variants")

@@ -42,9 +42,10 @@ class User(SQLModel, table=True):
     email: EmailStr = Field(unique=True, nullable=False)
     password: str = Field(nullable=False)
     fullName: str = Field(nullable=False)
+    exp_index: int = Field(nullable=False, default=100, le=100, ge=0)
     isActive: bool = Field(default=True)
 
-    required: int | None = Field(nullable=True, default=None)
+    required: int | None = Field(nullable=True, default=None, ge=0)
     useFallback: bool | None = Field(nullable=True, default=None)
     strategy: NoFallbackStrategy | None = Field(nullable=True, max_length=255, default=None)
 

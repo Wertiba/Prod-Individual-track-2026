@@ -53,9 +53,9 @@ class ReviewResultsHistory(SQLModel, table=True):
     __tablename__ = "reviews_results_history"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    approved: int = Field(nullable=False, default=0)
-    rejected: int = Field(nullable=False, default=0)
-    deleted: int = Field(nullable=False, default=0)
+    approved: int = Field(nullable=False, default=0, ge=0)
+    rejected: int = Field(nullable=False, default=0, ge=0)
+    deleted: int = Field(nullable=False, default=0, ge=0)
     comment: str = Field(nullable=True, max_length=500)
 
     createdAt: datetime = Field(default_factory=datetime.now)

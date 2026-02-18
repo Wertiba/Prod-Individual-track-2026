@@ -1,11 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
-from typing import Annotated, Self
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import AfterValidator, EmailStr, Field, field_serializer, model_validator
+from pydantic import AfterValidator, EmailStr, Field
 
-from app.core.schemas.base import PyModel
+from app.core.schemas.base import DatetimeResponse, PyModel
 from app.core.schemas.role import RoleCode, RoleRead
 from app.core.schemas.token import Token
 from app.core.utils import check_len_password
@@ -20,7 +20,7 @@ class UserUpdateBody(PyModel):
     roles: list[RoleCode] | None = None
     isActive: bool | None = None
 
-    required: int | None = None
+    required: Annotated[int | None, Field(ge=0)] = None
     useFallback: bool | None = None
     strategy: Annotated[NoFallbackStrategy | None, Field(max_length=255)] = None
 
@@ -51,11 +51,11 @@ class UserData(PyModel):
     updatedAt: datetime
 
 
-class UserReadResponse(UserData):
+class UserReadResponse(UserData, DatetimeResponse):
     roles: list[RoleRead] | None
 
 
-class UserWithTokenResponse(Token):
+class UserWithTokenResponse(Token, DatetimeResponse):
     user: UserReadResponse
 
 

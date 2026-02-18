@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
-from app.core.schemas.base import PyModel
+from app.core.schemas.base import DatetimeResponse, PyModel
 
 
 class ExperimentStatus(str, Enum):
@@ -22,7 +22,7 @@ class ExperimentStatus(str, Enum):
 class VariantCreateBody(PyModel):
     name: Annotated[str, Field(max_length=255)]
     value: Annotated[str, Field(max_length=255)]
-    weight: int
+    weight: Annotated[int, Field(ge=0)]
     isControl: Annotated[bool, Field(default=False)]
 
 
@@ -57,7 +57,7 @@ class ExperimentUpdateBody(ValidateVariants):
     name: Annotated[str, Field(max_length=255)]
     target: Annotated[str | None, Field(max_length=255)] = None
     description: Annotated[str | None, Field(max_length=500)] = None
-    part: Annotated[int, Field(le=100)]
+    part: Annotated[int, Field(ge=0, le=100)]
     variants: list[VariantCreateBody]
 
 
@@ -66,7 +66,7 @@ class ExperimentUpdate(PyModel):
 
 
 class ExperimentCreateData(ExperimentUpdateBody):
-    code: Annotated[str, Field(max_length=255)]
+    code: Annotated[str, Field(max_length=100)]
     flag_code: Annotated[str, Field(max_length=255)]
 
 
@@ -87,9 +87,9 @@ class ExperimentData(ExperimentCreateData, ExperimentSetStatusBody):
     variants: list[VariantData]
 
 
-class ExperimentReadResponse(ExperimentData):
+class ExperimentReadResponse(ExperimentData, DatetimeResponse):
     pass
 
 
-class ExperimentHistoryResponse(PyModel):
+class ExperimentHistoryResponse(DatetimeResponse):
     versions: list[ExperimentData]

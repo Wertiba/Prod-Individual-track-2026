@@ -1,7 +1,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
 if TYPE_CHECKING:
     from app.infrastructure.models import User
@@ -21,3 +21,7 @@ class Decision(SQLModel, table=True):
     variant: "Variant" = Relationship(back_populates="decisions")
 
     events: list["Event"] = Relationship(back_populates="decision")
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'variant_id', name='uq_user_variant'),
+    )

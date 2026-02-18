@@ -47,8 +47,8 @@ class Metric(SQLModel, table=True):
     )
     time_to: datetime | None = Field(nullable=True, default_factory=datetime.now)
 
-    window: int | None = Field(nullable=True, default=864000)
-    threshold: int | None = Field(nullable=True)
+    window: int | None = Field(nullable=True, default=864000, ge=0)
+    threshold: int | None = Field(nullable=True, ge=0)
     action_code: str | None = Field(nullable=True, foreign_key="guardrail_actions.code")
 
     addedBy: uuid.UUID = Field(foreign_key="users.id", nullable=False)

@@ -1,8 +1,11 @@
 from datetime import datetime
 from enum import Enum
+from typing import Annotated
 from uuid import UUID
 
-from app.core.schemas.base import PyModel
+from pydantic import Field
+
+from app.core.schemas.base import DatetimeResponse, PyModel
 
 
 class FlagType(str, Enum):
@@ -12,12 +15,12 @@ class FlagType(str, Enum):
 
 
 class FlagCreateBody(PyModel):
-    code: str
-    default: str
+    code: Annotated[str, Field(max_length=100)]
+    default: Annotated[str, Field(max_length=255)]
     type: FlagType
 
 
-class FlagReadResponse(FlagCreateBody):
+class FlagReadResponse(FlagCreateBody, DatetimeResponse):
     id: UUID
     enabled: bool
     createdAt: datetime
@@ -25,6 +28,6 @@ class FlagReadResponse(FlagCreateBody):
 
 
 class FlagUpdateBody(PyModel):
-    default: str
+    default: Annotated[str, Field(max_length=255)]
     enabled: bool | None = None
     updatedAt: datetime | None = None

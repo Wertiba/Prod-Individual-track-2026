@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from app.core.schemas.base import PyModel
+from app.core.schemas.base import DatetimeResponse, PyModel
 
 
 class AggregationUnit(str, Enum):
@@ -38,5 +38,5 @@ class MetricData(MetricCreateBody):
     createdAt: datetime
 
 
-class MetricCreateResponse(MetricData):
+class MetricReadResponse(MetricData, DatetimeResponse):
     pass
