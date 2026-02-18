@@ -35,6 +35,29 @@ class ExperimentRepository(BaseRepository[Experiment]):
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
 
+    async def get_by_code(self, code: str) -> Experiment | None:
+        try:
+            result = await self.session.execute(
+                select(Experiment)
+                .options(selectinload(Experiment.variants)) # noqa
+                .where(Experiment.code == code)  # noqa
+                .where(Experiment.isCurrent == True)    # noqa
+            )
+            return result.scalars().first()
+        except SQLAlchemyError as e:
+            raise RepositoryError("Database error") from e
+
+    async def get_history(self, code: str) -> list[Experiment] | None:
+        try:
+            result = await self.session.execute(
+                select(Experiment)
+                .options(selectinload(Experiment.variants)) # noqa
+                .where(Experiment.code == code)  # noqa
+            )
+            return list(result.scalars().all()) or None
+        except SQLAlchemyError as e:
+            raise RepositoryError("Database error") from e
+
     async def get_paginated_with_variants(self, offset: int, limit: int) -> list[Experiment]:
         try:
             result = await self.session.execute(

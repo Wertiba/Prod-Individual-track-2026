@@ -38,7 +38,7 @@ class Review(SQLModel, table=True):
     __tablename__ = "reviews"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    experiment_code: str = Field(foreign_key="experiments.code")
+    experiment_id: uuid.UUID = Field(foreign_key="experiments.id")
     result: ReviewResult = Field(nullable=False)
     comment: str = Field(nullable=True, max_length=500)
 

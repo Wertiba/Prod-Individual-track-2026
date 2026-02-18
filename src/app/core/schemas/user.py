@@ -50,14 +50,6 @@ class UserData(PyModel):
     createdAt: datetime
     updatedAt: datetime
 
-    @field_serializer("createdAt", "updatedAt")
-    def serialize_dt(self, dt: datetime, _info) -> str:
-        utc_dt = dt.astimezone(timezone.utc)
-        iso_str = utc_dt.isoformat()
-        if iso_str.endswith("+00:00"):
-            return iso_str[:-9] + "Z"
-        return iso_str[:-3] + "Z"
-
 
 class UserReadResponse(UserData):
     roles: list[RoleRead] | None

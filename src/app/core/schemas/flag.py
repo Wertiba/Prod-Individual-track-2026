@@ -21,8 +21,10 @@ class FlagReadResponse(FlagCreateBody):
     id: UUID
     enabled: bool
     createdAt: datetime
+    updatedAt: datetime
 
 
 class FlagUpdateBody(PyModel):
     default: str
     enabled: bool | None = None
+    updatedAt: datetime | None = None

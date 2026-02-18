@@ -27,24 +27,13 @@ class VariantCreateBody(PyModel):
 
 
 class VariantData(VariantCreateBody):
-    experiment_code: str
-    updatedAt: datetime
+    experiment_id: UUID
 
 
-class ExperimentUpdateBody(PyModel):
-    code: Annotated[str, Field(max_length=255)]
-    name: Annotated[str, Field(max_length=255)]
-    target: Annotated[str | None, Field(max_length=255)] = None
-    description: Annotated[str | None, Field(max_length=500)] = None
-
-
-class ExperimentCreateData(ExperimentUpdateBody):
-    flag_code: Annotated[str, Field(max_length=255)]
-    part: Annotated[int, Field(le=100)]
+class ValidateVariants(PyModel):
+    part: Annotated[int, Field(le=100, ge=0)]
     variants: list[VariantCreateBody]
 
-
-class ExperimentCreateBody(ExperimentCreateData):
     @model_validator(mode="after")
     def validate_weights(self) -> Self:
         if not self.variants:
@@ -59,12 +48,34 @@ class ExperimentCreateBody(ExperimentCreateData):
 
         control_variants = [v for v in self.variants if v.isControl]
         if len(control_variants) != 1:
-            raise ValueError("There must be exactly one control variant. (isControl=True)")
+            raise ValueError("There must be exactly one control variant (isControl=True)")
+
         return self
 
 
+class ExperimentUpdateBody(ValidateVariants):
+    name: Annotated[str, Field(max_length=255)]
+    target: Annotated[str | None, Field(max_length=255)] = None
+    description: Annotated[str | None, Field(max_length=500)] = None
+    part: Annotated[int, Field(le=100)]
+    variants: list[VariantCreateBody]
+
+
+class ExperimentUpdate(PyModel):
+    isCurrent: bool | None = None
+
+
+class ExperimentCreateData(ExperimentUpdateBody):
+    code: Annotated[str, Field(max_length=255)]
+    flag_code: Annotated[str, Field(max_length=255)]
+
+
+class ExperimentCreateBody(ExperimentCreateData, ValidateVariants):
+    pass
+
+
 class ExperimentSetStatusBody(PyModel):
-    id: UUID
+    code: Annotated[str, Field(max_length=100)]
 
 
 class ExperimentData(ExperimentCreateData, ExperimentSetStatusBody):
@@ -78,3 +89,7 @@ class ExperimentData(ExperimentCreateData, ExperimentSetStatusBody):
 
 class ExperimentReadResponse(ExperimentData):
     pass
+
+
+class ExperimentHistoryResponse(PyModel):
+    versions: list[ExperimentData]

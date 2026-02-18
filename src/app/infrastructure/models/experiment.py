@@ -16,7 +16,7 @@ class Experiment(SQLModel, table=True):
     __tablename__ = "experiments"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    code: str = Field(unique=True, nullable=False, index=True, max_length=100)
+    code: str = Field(nullable=False, index=True, max_length=100)
     flag_code: str = Field(foreign_key="flags.code", nullable=False)
 
     name: str = Field(nullable=False, max_length=255)
@@ -42,16 +42,11 @@ class Variant(SQLModel, table=True):
     __tablename__ = "variants"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
-    experiment_code: str = Field(foreign_key="experiments.code", nullable=False)
+    experiment_id: uuid.UUID = Field(foreign_key="experiments.id", nullable=False)
     name: str = Field(nullable=False, max_length=255)
     value: str = Field(nullable=False, max_length=255)
     weight: int = Field(nullable=False, default=0)
     isControl: bool = Field(nullable=False, default=True)
-
-    updatedAt: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(DateTime(timezone=True), nullable=False),
-    )
 
     experiment: "Experiment" = Relationship(back_populates="variants")
 

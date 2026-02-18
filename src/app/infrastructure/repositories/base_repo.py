@@ -36,8 +36,12 @@ class BaseRepository(Generic[T]):  # noqa
             raise RepositoryError("Database error") from e
 
     async def update(self, id_: UUID, new_data: PyModel) -> T | None:
-        now = datetime.now(timezone.utc)
-        stmt = update(self.model).where(self.model.id == id_).values(**new_data.model_dump(), updatedAt=now).returning(self.model)  # noqa
+        stmt = (
+            update(self.model)
+            .where(self.model.id == id_)    # noqa
+            .values(**new_data.model_dump(exclude_unset=True))
+            .returning(self.model)
+        )
         try:
             result = await self.session.execute(stmt)
             return result.scalar_one_or_none()

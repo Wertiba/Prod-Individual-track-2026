@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from app.core.exceptions.base import DuplicateError
@@ -48,7 +49,9 @@ class FlagService:
         current = await self.get_by_id(flag_id)
         async with self.uow:
             if current:
+                now = datetime.now(timezone.utc)
                 enabled = new_data.enabled if new_data.enabled is not None else current.enabled
-                updated = await self.uow.flag_repo.update(flag_id, FlagUpdateBody(enabled=enabled,
-                                                                                  **new_data.model_dump(exclude={"enabled"})))
+                updated = await self.uow.flag_repo.update(
+                    flag_id, FlagUpdateBody(**new_data.model_dump(exclude={"enabled", "updatedAt"}),
+                                            enabled=enabled, updatedAt=now))
                 return FlagReadResponse(**updated.model_dump())
