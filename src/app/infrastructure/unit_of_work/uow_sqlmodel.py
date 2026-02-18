@@ -3,10 +3,16 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.repositories import ApproverRepository, DecisionRepository, ExperimentRepository, UserRepository
-from app.infrastructure.repositories.flag_repository import FlagRepository
-from app.infrastructure.repositories.metric_repository import MetricRepository
-from app.infrastructure.repositories.role_repository import RoleRepository
+from app.infrastructure.repositories import (
+    ApproverRepository,
+    DecisionRepository,
+    ExperimentRepository,
+    FlagRepository,
+    MetricRepository,
+    ReviewRepository,
+    RoleRepository,
+    UserRepository,
+)
 from app.infrastructure.unit_of_work import AbstractUnitOfWork
 
 
@@ -18,6 +24,7 @@ class UnitOfWork(AbstractUnitOfWork):
     experiment_repo: ExperimentRepository
     decision_repo: DecisionRepository
     approver_repo: ApproverRepository
+    review_repo: ReviewRepository
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -30,6 +37,7 @@ class UnitOfWork(AbstractUnitOfWork):
         self.experiment_repo = ExperimentRepository(self.session)
         self.decision_repo = DecisionRepository(self.session)
         self.approver_repo = ApproverRepository(self.session)
+        self.review_repo = ReviewRepository(self.session)
         return self
 
     async def __aexit__(

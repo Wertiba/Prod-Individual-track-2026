@@ -56,3 +56,7 @@ class Review(SQLModel, table=True):
 
     experiment: "Experiment" = Relationship(back_populates="reviews")
     approver: "Approver" = Relationship(back_populates="reviews")
+
+    __table_args__ = (
+        UniqueConstraint('experiment_id', 'approvedBy', name='uq_experiment_id_approvedBy'),
+    )

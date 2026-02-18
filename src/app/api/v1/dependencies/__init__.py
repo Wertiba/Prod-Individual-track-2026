@@ -1,6 +1,13 @@
 from .current_user import AdminUserDep, AnyViewUserDep, ApproverUserDep, CurrentUserDep, ExperimenterUserDep
 from .pagination import PaginationDep
-from .services import AuthServiceDep, ExperimentServiceDep, FlagServiceDep, MetricServiceDep, UserServiceDep
+from .services import (
+    AuthServiceDep,
+    ExperimentServiceDep,
+    FlagServiceDep,
+    MetricServiceDep,
+    ReviewServiceDep,
+    UserServiceDep,
+)
 from .session import SessionDep
 from .uow import UnitOfWorkDep
 
@@ -15,6 +22,7 @@ __all__ = [
     "FlagServiceDep",
     "MetricServiceDep",
     "PaginationDep",
+    "ReviewServiceDep",
     "SessionDep",
     "UnitOfWorkDep",
     "UserServiceDep",

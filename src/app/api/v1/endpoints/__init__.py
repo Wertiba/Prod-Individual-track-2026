@@ -6,6 +6,7 @@ from .experiments import router as experiment_router
 from .flags import router as flag_router
 from .health import router as ping_router
 from .metric_catalog import router as metric_catalog_router
+from .reviews import router as review_router
 from .users import router as user_router
 
 router = APIRouter(prefix="/v1")
@@ -18,3 +19,4 @@ router.include_router(flag_router)
 router.include_router(metric_catalog_router)
 router.include_router(experiment_router)
 router.include_router(decision_router)
+router.include_router(review_router)

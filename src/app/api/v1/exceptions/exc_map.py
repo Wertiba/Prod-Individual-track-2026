@@ -7,9 +7,14 @@ from app.api.v1.exceptions.api_exs import (
     ValidationFailed,
 )
 from app.core.exceptions.base import UnprocessableEntityError
-from app.core.exceptions.experiment_exs import ExperimentAlreadyExistsError, ExperimentNotFoundError
+from app.core.exceptions.experiment_exs import (
+    ExperimentAlreadyExistsError,
+    ExperimentInvalidStatusError,
+    ExperimentNotFoundError,
+)
 from app.core.exceptions.flag_exs import FlagAlreadyExistsError, FlagNotFoundError
-from app.core.exceptions.matric_exs import MetricAlreadyExistsError, MetricNotFoundError
+from app.core.exceptions.metric_exs import MetricAlreadyExistsError, MetricNotFoundError
+from app.core.exceptions.review_exs import ReviewAlreadyExistsError, ReviewNotFoundError
 from app.core.exceptions.user_exs import (
     ForbiddenError,
     InvalidCredentialsError,
@@ -37,6 +42,10 @@ DOMAIN_TO_API: dict[type, callable] = {
         path=path,
         message="Experiment not found",
     ),
+    ReviewNotFoundError: lambda path, exc=None: NotFound(
+        path=path,
+        message="Review not found",
+    ),
     ForbiddenError: lambda path, exc=None: Forbidden(
         path=path,
     ),
@@ -45,6 +54,10 @@ DOMAIN_TO_API: dict[type, callable] = {
     ),
     InvalidPasswordError: lambda path, exc=None: Unauthorized(
         path=path,
+    ),
+    ExperimentInvalidStatusError: lambda path, exc=None: Conflict(
+        path=path,
+        message="Invalid experiment status",
     ),
     UserAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,
@@ -61,6 +74,10 @@ DOMAIN_TO_API: dict[type, callable] = {
     ExperimentAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,
         message="Experiment already exists",
+    ),
+    ReviewAlreadyExistsError: lambda path, exc=None: Conflict(
+        path=path,
+        message="Review already exists",
     ),
     UnprocessableEntityError: lambda path, exc=None: ValidationFailed(
         path=path,

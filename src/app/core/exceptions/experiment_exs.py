@@ -7,3 +7,7 @@ class ExperimentNotFoundError(EntityError):
 
 class ExperimentAlreadyExistsError(EntityError):
     pass
+
+
+class ExperimentInvalidStatusError(EntityError):
+    pass

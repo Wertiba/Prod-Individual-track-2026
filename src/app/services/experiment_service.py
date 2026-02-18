@@ -3,7 +3,11 @@ from collections.abc import Awaitable, Callable
 from uuid import UUID
 
 from app.core.exceptions.base import DuplicateError, UnprocessableEntityError
-from app.core.exceptions.experiment_exs import ExperimentAlreadyExistsError, ExperimentNotFoundError
+from app.core.exceptions.experiment_exs import (
+    ExperimentAlreadyExistsError,
+    ExperimentInvalidStatusError,
+    ExperimentNotFoundError,
+)
 from app.core.exceptions.flag_exs import FlagNotFoundError
 from app.core.schemas.decision import DecisionBody, DecisionData, DecisionResponse
 from app.core.schemas.experiment import (
@@ -160,7 +164,7 @@ class ExperimentService:
                 return ExperimentReadResponse(**experiment.model_dump(exclude={"status"}),
                                               status=status,
                                               variants=[VariantData(**exp.model_dump()) for exp in experiment.variants])
-            raise UnprocessableEntityError
+            raise ExperimentInvalidStatusError
 
     async def set_status_review(self, code: str) -> ExperimentReadResponse:
         # exp = await self.get_by_code(code)

@@ -1,8 +1,8 @@
 from uuid import UUID
 
 from app.core.exceptions.base import DuplicateError
-from app.core.exceptions.matric_exs import MetricAlreadyExistsError, MetricNotFoundError
-from app.core.schemas.metric import MetricCreateBody, MetricData, MetricReadResponse
+from app.core.exceptions.metric_exs import MetricAlreadyExistsError, MetricNotFoundError
+from app.core.schemas.metric import MetricCreateBody, MetricReadResponse
 from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
 from app.infrastructure.models import MetricCatalog
