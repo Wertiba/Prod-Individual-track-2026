@@ -1,12 +1,15 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from app.core.exceptions.user_exs import (
-    EmailAlreadyExistsError,
     ForbiddenError,
+    UserAlreadyExistsError,
     UserNotFoundError,
 )
 from app.core.schemas.role import RoleCode, RoleRead
 from app.core.schemas.user import (
+    ApproverAssignBody,
+    ApproverReadResponse,
     NoFallbackStrategy,
     TokenData,
     UserCreateBody,
@@ -14,7 +17,7 @@ from app.core.schemas.user import (
     UserUpdateBody,
 )
 from app.core.utils.paginated import Page, PaginationParams
-from app.infrastructure.models import Role, User
+from app.infrastructure.models import Approver, Role, User
 from app.infrastructure.unit_of_work import UnitOfWork
 from app.services.jwt_service import JWTService
 
@@ -97,7 +100,7 @@ class UserService:
         async with self.uow:
             existing_user = await self.uow.user_repo.get_by_email(user_data.email)
             if existing_user:
-                raise EmailAlreadyExistsError
+                raise UserAlreadyExistsError
 
             user_data.password = self.jwt_service.get_password_hash(user_data.password)
             role_codes = [code.value for code in user_data.roles] if user_data.roles is not None else None
@@ -149,7 +152,7 @@ class UserService:
     async def deactivate(self, user_id: UUID) -> None:
         async with self.uow:
             if await self.get_by_id(user_id):
-                return await self.uow.user_repo.deactivate(user_id)
+                return await self.uow.user_repo.deactivate(user_id, isActive=False, updatedAt=datetime.now(tz=UTC))
             raise UserNotFoundError
 
     async def update(
@@ -169,7 +172,7 @@ class UserService:
             new_roles = new_data.roles if (is_admin and new_data.roles is not None) else None
 
             if is_admin and new_roles is not None:
-                role_codes = [code.value for code in new_roles]
+                role_codes = [code.value for code in new_roles] # noqa
                 roles = await self._validate_roles(role_codes)
                 await self.uow.user_repo.set_roles(user_id, [role.id for role in roles])
                 effective_roles = new_roles
@@ -212,3 +215,35 @@ class UserService:
 
         await self.get_by_id(user_id)
         return await self.update(user_id, user_data.roles, new_data)
+
+    async def assign_approver(self, user_data: TokenData, approver_data: ApproverAssignBody) -> ApproverReadResponse:
+        async with self.uow:
+            if await self.uow.approver_repo.get_by_two_ids(approver_data.experimenter_id, approver_data.approver_id):
+                raise UserAlreadyExistsError
+
+            if await self.uow.user_repo.get_by_id(
+                    approver_data.approver_id
+            ) and await self.uow.user_repo.get_by_id(
+                approver_data.experimenter_id
+            ):
+                approver = await self.uow.approver_repo.add(Approver(
+                    **approver_data.model_dump(),
+                    addedBy=user_data.id,
+                ))
+                return ApproverReadResponse(**approver.model_dump(exclude={"experimenter", "approver", "reviews"}))
+        raise UserNotFoundError
+
+    async def get_approver(self, id_: UUID) -> ApproverReadResponse | None:
+        async with self.uow:
+            result = await self.uow.approver_repo.get_by_id(id_)
+            if not result:
+                raise UserNotFoundError
+            return ApproverReadResponse(**result.model_dump())
+
+    async def del_approver(self, id_: UUID) -> None:
+        async with self.uow:
+            result = await self.uow.approver_repo.get_by_id(id_)
+            if result:
+                await self.uow.approver_repo.deactivate(id_, isActive=False)
+                return
+            raise UserNotFoundError

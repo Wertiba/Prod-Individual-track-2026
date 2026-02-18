@@ -11,11 +11,11 @@ from app.core.exceptions.experiment_exs import ExperimentAlreadyExistsError, Exp
 from app.core.exceptions.flag_exs import FlagAlreadyExistsError, FlagNotFoundError
 from app.core.exceptions.matric_exs import MetricAlreadyExistsError, MetricNotFoundError
 from app.core.exceptions.user_exs import (
-    EmailAlreadyExistsError,
     ForbiddenError,
     InvalidCredentialsError,
     InvalidFallbackDataError,
     InvalidPasswordError,
+    UserAlreadyExistsError,
     UserNotActiveError,
     UserNotFoundError,
 )
@@ -46,9 +46,9 @@ DOMAIN_TO_API: dict[type, callable] = {
     InvalidPasswordError: lambda path, exc=None: Unauthorized(
         path=path,
     ),
-    EmailAlreadyExistsError: lambda path, exc=None: Conflict(
+    UserAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,
-        message="Email already exists",
+        message="User already exists",
     ),
     FlagAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,

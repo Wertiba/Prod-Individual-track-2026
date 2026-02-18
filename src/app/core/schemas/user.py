@@ -62,3 +62,15 @@ class UserWithTokenResponse(Token, DatetimeResponse):
 
 class TokenData(UserData):
     token_type: str | None
+
+
+class ApproverAssignBody(PyModel):
+    experimenter_id: UUID
+    approver_id: UUID
+
+
+class ApproverReadResponse(ApproverAssignBody, DatetimeResponse):
+    id: UUID
+    isActive: bool
+    addedAt: datetime
+    addedBy: UUID

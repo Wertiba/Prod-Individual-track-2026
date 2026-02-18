@@ -2,8 +2,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from app.api.v1.dependencies import AdminUserDep, CurrentUserDep, PaginationDep, UserServiceDep
-from app.core.schemas.user import UserCreateBody, UserReadResponse, UserUpdateBody
+from app.api.v1.dependencies import AdminUserDep, AnyViewUserDep, CurrentUserDep, PaginationDep, UserServiceDep
+from app.core.schemas.user import (
+    ApproverAssignBody,
+    ApproverReadResponse,
+    UserCreateBody,
+    UserReadResponse,
+    UserUpdateBody,
+)
 from app.core.utils import Page
 from app.infrastructure.models import User
 
@@ -45,3 +51,19 @@ async def update_current(
 @router.delete("/{id}", response_model=None, status_code=status.HTTP_204_NO_CONTENT)
 async def deactivate_current(_: AdminUserDep, id: UUID, user_service: UserServiceDep) -> None:
     return await user_service.deactivate(id)
+
+
+@router.post("/approvers", response_model=ApproverReadResponse, status_code=status.HTTP_200_OK)
+async def assign_approver(user_data: AdminUserDep, user_service: UserServiceDep,
+                          approver_data: ApproverAssignBody) -> User | None:
+    return await user_service.assign_approver(user_data, approver_data)
+
+
+@router.get("/approvers/{id}", response_model=ApproverReadResponse, status_code=status.HTTP_200_OK)
+async def get_approver(_: AnyViewUserDep, user_service: UserServiceDep, id: UUID) -> User | None:
+    return await user_service.get_approver(id)
+
+
+@router.delete("/approvers/{id}", response_model=None, status_code=status.HTTP_204_NO_CONTENT)
+async def delete_approver(_: AdminUserDep, user_service: UserServiceDep, id: UUID) -> None:
+    return await user_service.del_approver(id)

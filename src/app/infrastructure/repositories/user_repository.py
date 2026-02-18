@@ -43,14 +43,6 @@ class UserRepository(BaseRepository[User]):
 
         await self.session.commit()
 
-    async def deactivate(self, user_id: UUID) -> None:
-        now = datetime.now(timezone.utc)
-        stmt = update(User).where(User.id == user_id).values(isActive=False, updatedAt=now)  # noqa
-        try:
-            await self.session.execute(stmt)
-        except SQLAlchemyError as e:
-            raise RepositoryError("Database error") from e
-
     async def update(self, user_id: UUID, data: dict) -> User | None:
         data["updatedAt"] = datetime.now(timezone.utc)
         stmt = update(User).where(User.id == user_id).values(**data).returning(User)    # noqa
@@ -67,7 +59,7 @@ class UserRepository(BaseRepository[User]):
     async def get_paginated(self, offset: int, limit: int) -> list[User]:
         stmt = (
             select(User)
-            .options(selectinload(User.roles))
+            .options(selectinload(User.roles))  # noqa
             .offset(offset)
             .limit(limit)
         )

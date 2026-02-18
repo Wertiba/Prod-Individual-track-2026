@@ -27,9 +27,8 @@ class BaseRepository(Generic[T]):  # noqa
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
 
-    async def deactivate(self, id_: UUID) -> None:
-        now = datetime.now(timezone.utc)
-        stmt = update(self.model).where(self.model.id == id_).values(enabled=False, updatedAt=now)  # noqa
+    async def deactivate(self, id_: UUID, **values) -> None:
+        stmt = update(self.model).where(self.model.id == id_).values(**values)  # noqa
         try:
             await self.session.execute(stmt)
         except SQLAlchemyError as e:

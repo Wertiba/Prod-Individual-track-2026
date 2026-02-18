@@ -79,3 +79,9 @@ class User(SQLModel, table=True):
             "foreign_keys": "Approver.approver_id"
         }
     )
+    approvers_as_creator: list["Approver"] = Relationship(
+        back_populates="creator",
+        sa_relationship_kwargs={
+            "foreign_keys": "Approver.addedBy"
+        }
+    )

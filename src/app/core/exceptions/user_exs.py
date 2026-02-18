@@ -13,7 +13,7 @@ class InvalidPasswordError(EntityError):
     pass
 
 
-class EmailAlreadyExistsError(EntityError):
+class UserAlreadyExistsError(EntityError):
     pass
 
 

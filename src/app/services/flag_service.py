@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from uuid import UUID
 
 from app.core.exceptions.base import DuplicateError
@@ -43,7 +43,7 @@ class FlagService:
     async def deactivate(self, flag_id: UUID) -> None:
         async with self.uow:
             if await self.get_by_id(flag_id):
-                return await self.uow.flag_repo.deactivate(flag_id)
+                return await self.uow.flag_repo.deactivate(flag_id, enabled=False, updatedAt=datetime.now(tz=UTC))
 
     async def update(self, flag_id: UUID, new_data: FlagUpdateBody) -> FlagReadResponse | None:
         current = await self.get_by_id(flag_id)

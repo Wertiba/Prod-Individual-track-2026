@@ -4,7 +4,7 @@ from sqlmodel import select
 
 from app.core.exceptions.base import RepositoryError
 from app.infrastructure.models import Flag
-from app.infrastructure.repositories import BaseRepository
+from app.infrastructure.repositories.base_repo import BaseRepository
 
 
 class FlagRepository(BaseRepository[Flag]):
