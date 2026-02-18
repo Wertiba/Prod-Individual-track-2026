@@ -89,7 +89,7 @@ class UserService:
                 required = await self._calculate_required()
         else:
             if strategy is None:
-                strategy = NoFallbackStrategy.ANY
+                strategy = NoFallbackStrategy.ZERO
 
         return useFallback, required, strategy
 

@@ -13,6 +13,7 @@ from app.core.utils import check_len_password
 
 class NoFallbackStrategy(str, Enum):
     ANY = "ANY"
+    ZERO = "ZERO"
 
 
 class UserUpdateBody(PyModel):

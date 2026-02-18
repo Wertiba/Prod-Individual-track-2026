@@ -152,15 +152,23 @@ class ExperimentService:
                          status: ExperimentStatus, old: set[ExperimentStatus]) -> ExperimentReadResponse:
         async with self.uow:
             experiment = await self.uow.experiment_repo.get_by_code(code)
-            if experiment and experiment.status in old:
+            if not experiment:
+                raise ExperimentNotFoundError
+
+            if experiment.status in old:
                 await self.uow.experiment_repo.set_status(experiment.id, status)
-                return ExperimentReadResponse(**experiment.model_dump(exclude={"status"}), status=status)
+                return ExperimentReadResponse(**experiment.model_dump(exclude={"status"}),
+                                              status=status,
+                                              variants=[VariantData(**exp.model_dump()) for exp in experiment.variants])
             raise UnprocessableEntityError
 
     async def set_status_review(self, code: str) -> ExperimentReadResponse:
-        exp = await self.get_by_code(code)
+        # exp = await self.get_by_code(code)
         # decisions = await self._generate_decisions(exp.id)
-        # return await self.set_status(code, ExperimentStatus.IN_REVIEW, {ExperimentStatus.DRAFT})
+        return await self.set_status(code, ExperimentStatus.IN_REVIEW, {ExperimentStatus.DRAFT})
+
+    async def set_status_draft(self, code: str) -> ExperimentReadResponse:
+        return await self.set_status(code, ExperimentStatus.DRAFT, {ExperimentStatus.REJECTED})
 
     async def get_decisions(self, data: DecisionBody) -> DecisionResponse:
         decisions: list[DecisionData] = []
