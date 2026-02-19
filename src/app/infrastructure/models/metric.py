@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
 from app.core.schemas.metric import AggregationUnit, MetricType
+from app.infrastructure.models.event import EventCatalogMetricCatalogLink
 
 if TYPE_CHECKING:
     from app.infrastructure.models import User
@@ -30,7 +31,10 @@ class MetricCatalog(SQLModel, table=True):
     creator: "User" = Relationship(back_populates="created_catalog_metrics")
 
     metrics: list["Metric"] = Relationship(back_populates="metric_catalog")
-    event_catalog: list["EventCatalog"] = Relationship(back_populates="metric")
+    events: list["EventCatalog"] = Relationship(
+        back_populates="metrics",
+        link_model=EventCatalogMetricCatalogLink
+    )
 
 
 class Metric(SQLModel, table=True):

@@ -7,6 +7,7 @@ from app.api.v1.exceptions.api_exs import (
     ValidationFailed,
 )
 from app.core.exceptions.base import UnprocessableEntityError
+from app.core.exceptions.event_exs import EventAlreadyExistsError, EventNotFoundError
 from app.core.exceptions.experiment_exs import (
     ExperimentAlreadyExistsError,
     ExperimentInvalidStatusError,
@@ -40,6 +41,10 @@ DOMAIN_TO_API: dict[type, callable] = {
     MetricNotFoundError: lambda path, exc=None: NotFound(
         path=path,
         message="Metric not found",
+    ),
+    EventNotFoundError: lambda path, exc=None: NotFound(
+        path=path,
+        message="Event not found",
     ),
     ExperimentNotFoundError: lambda path, exc=None: NotFound(
         path=path,
@@ -81,6 +86,10 @@ DOMAIN_TO_API: dict[type, callable] = {
     MetricAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,
         message="Metric already exists",
+    ),
+    EventAlreadyExistsError: lambda path, exc=None: Conflict(
+        path=path,
+        message="Event already exists",
     ),
     ExperimentAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,

@@ -2,6 +2,7 @@ from .current_user import AdminUserDep, AnyViewUserDep, ApproverUserDep, Current
 from .pagination import PaginationDep
 from .services import (
     AuthServiceDep,
+    EventServiceDep,
     ExperimentServiceDep,
     FlagServiceDep,
     MetricServiceDep,
@@ -17,6 +18,7 @@ __all__ = [
     "ApproverUserDep",
     "AuthServiceDep",
     "CurrentUserDep",
+    "EventServiceDep",
     "ExperimentServiceDep",
     "ExperimenterUserDep",
     "FlagServiceDep",

@@ -25,7 +25,7 @@ from app.core.schemas.experiment import (
 from app.core.schemas.review import ReviewResult
 from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
-from app.infrastructure.models import Approver, Decision, Experiment, Variant
+from app.infrastructure.models import Decision, Experiment, Variant
 from app.infrastructure.unit_of_work import UnitOfWork
 
 

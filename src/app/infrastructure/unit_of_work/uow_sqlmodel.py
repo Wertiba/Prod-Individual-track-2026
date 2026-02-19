@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.repositories import (
     ApproverRepository,
     DecisionRepository,
+    EventRepository,
     ExperimentRepository,
     FlagRepository,
     MetricRepository,
@@ -25,6 +26,7 @@ class UnitOfWork(AbstractUnitOfWork):
     decision_repo: DecisionRepository
     approver_repo: ApproverRepository
     review_repo: ReviewRepository
+    event_repo: EventRepository
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -38,6 +40,7 @@ class UnitOfWork(AbstractUnitOfWork):
         self.decision_repo = DecisionRepository(self.session)
         self.approver_repo = ApproverRepository(self.session)
         self.review_repo = ReviewRepository(self.session)
+        self.event_repo = EventRepository(self.session)
         return self
 
     async def __aexit__(
