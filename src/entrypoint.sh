@@ -15,13 +15,13 @@ fi
 
 if command -v alembic >/dev/null 2>&1; then
   echo "[entrypoint] Running alembic upgrade head..."
-  alembic upgrade head || true
+  alembic upgrade head
 else
   echo "[entrypoint] alembic not found in PATH — skipping migrations"
 fi
 
 echo "[entrypoint] Creating first admin if not exists..."
-python -m app.actions.run || true
+python -m app.actions.run
 
 echo "[entrypoint] Starting application..."
 exec "$@"
