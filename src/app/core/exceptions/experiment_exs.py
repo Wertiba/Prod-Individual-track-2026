@@ -15,3 +15,7 @@ class VersionOfExperimentAlreadyExistsError(EntityError):
 
 class ExperimentInvalidStatusError(EntityError):
     pass
+
+
+class ExperimentReworkError(EntityError):
+    pass

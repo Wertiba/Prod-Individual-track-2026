@@ -6,7 +6,6 @@ from pydantic import EmailStr
 from sqlmodel import Column, DateTime, Field, Relationship, SQLModel
 
 from app.core.schemas.role import RoleCode
-from app.core.schemas.user import NoFallbackStrategy
 
 if TYPE_CHECKING:
     from app.infrastructure.models.decision import Decision
@@ -45,9 +44,7 @@ class User(SQLModel, table=True):
     exp_index: int = Field(nullable=False, default=100, le=100, ge=0)
     isActive: bool = Field(default=True)
 
-    required: int | None = Field(nullable=True, default=None, ge=0)
-    useFallback: bool | None = Field(nullable=True, default=None)
-    strategy: NoFallbackStrategy | None = Field(nullable=True, max_length=255, default=None)
+    required: int | None = Field(nullable=False, default=0, ge=0)
 
     createdAt: datetime = Field(default_factory=datetime.now)
     updatedAt: datetime = Field(

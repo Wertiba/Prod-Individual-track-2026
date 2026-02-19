@@ -1,5 +1,4 @@
 from datetime import datetime
-from enum import Enum
 from typing import Annotated
 from uuid import UUID
 
@@ -11,19 +10,12 @@ from app.core.schemas.token import Token
 from app.core.utils import check_len_password
 
 
-class NoFallbackStrategy(str, Enum):
-    ANY = "ANY"
-    ZERO = "ZERO"
-
-
 class UserUpdateBody(PyModel):
     fullName: Annotated[str, Field(min_length=2, max_length=200)]
     roles: list[RoleCode] | None = None
     isActive: bool | None = None
 
     required: Annotated[int | None, Field(ge=0)] = None
-    useFallback: bool | None = None
-    strategy: Annotated[NoFallbackStrategy | None, Field(max_length=255)] = None
 
 
 class UserCreateBody(UserUpdateBody):
@@ -45,8 +37,6 @@ class UserData(PyModel):
     isActive: bool
 
     required: int | None
-    useFallback: bool | None
-    strategy: NoFallbackStrategy | None
 
     createdAt: datetime
     updatedAt: datetime

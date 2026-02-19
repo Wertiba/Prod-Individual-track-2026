@@ -17,6 +17,7 @@ class ExperimentStatus(str, Enum):
     COMPLETED = "COMPLETED"
     ARCHIVED = "ARCHIVED"
     REJECTED = "REJECTED"
+    REWORK = "REWORK"
 
 
 class VariantCreateBody(PyModel):

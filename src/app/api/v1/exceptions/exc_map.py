@@ -11,12 +11,14 @@ from app.core.exceptions.experiment_exs import (
     ExperimentAlreadyExistsError,
     ExperimentInvalidStatusError,
     ExperimentNotFoundError,
+    ExperimentReworkError,
     VersionOfExperimentAlreadyExistsError,
 )
 from app.core.exceptions.flag_exs import FlagAlreadyExistsError, FlagNotFoundError
 from app.core.exceptions.metric_exs import MetricAlreadyExistsError, MetricNotFoundError
 from app.core.exceptions.review_exs import ReviewAlreadyExistsError, ReviewNotFoundError
 from app.core.exceptions.user_exs import (
+    DeficiencyApproversError,
     ForbiddenError,
     InvalidCredentialsError,
     InvalidFallbackDataError,
@@ -60,6 +62,10 @@ DOMAIN_TO_API: dict[type, callable] = {
         path=path,
         message="Invalid experiment status",
     ),
+    ExperimentReworkError: lambda path, exc=None: Conflict(
+        path=path,
+        message="Experiment need to be changed after reviews",
+    ),
     VersionOfExperimentAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,
         message="Invalid experiment version",
@@ -88,6 +94,9 @@ DOMAIN_TO_API: dict[type, callable] = {
         path=path,
     ),
     InvalidFallbackDataError: lambda path, exc=None: ValidationFailed(
+        path=path,
+    ),
+    DeficiencyApproversError: lambda path, exc=None: ValidationFailed(
         path=path,
     ),
     UserNotActiveError: lambda path, exc=None: Inactive(

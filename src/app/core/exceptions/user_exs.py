@@ -27,3 +27,7 @@ class UserNotActiveError(EntityError):
 
 class InvalidFallbackDataError(EntityError):
     pass
+
+
+class DeficiencyApproversError(EntityError):
+    pass

@@ -21,7 +21,6 @@ class ReviewService:
             raise ExperimentNotFoundError
         return experiment
 
-    # TODO: fallback и переход в статут из ревью
     async def create(self, user_data: TokenData, review_data: ReviewCreateBody) -> ReviewReadResponse:
         async with self.uow:
             try:

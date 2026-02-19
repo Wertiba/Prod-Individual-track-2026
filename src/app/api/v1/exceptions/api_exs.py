@@ -36,7 +36,7 @@ class Conflict(APIException):
 class ValidationFailed(APIException):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     code = "VALIDATION_FAILED"
-    message = "Some fields are not validated."
+    message = "Some fields are not correct."
 
 
 class Inactive(APIException):

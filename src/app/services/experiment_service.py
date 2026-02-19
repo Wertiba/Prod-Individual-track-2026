@@ -7,9 +7,11 @@ from app.core.exceptions.experiment_exs import (
     ExperimentAlreadyExistsError,
     ExperimentInvalidStatusError,
     ExperimentNotFoundError,
+    ExperimentReworkError,
     VersionOfExperimentAlreadyExistsError,
 )
 from app.core.exceptions.flag_exs import FlagNotFoundError
+from app.core.exceptions.user_exs import DeficiencyApproversError
 from app.core.schemas.decision import DecisionBody, DecisionData, DecisionResponse
 from app.core.schemas.experiment import (
     ExperimentCreateBody,
@@ -23,7 +25,7 @@ from app.core.schemas.experiment import (
 from app.core.schemas.review import ReviewResult
 from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
-from app.infrastructure.models import Decision, Experiment, Variant
+from app.infrastructure.models import Approver, Decision, Experiment, Variant
 from app.infrastructure.unit_of_work import UnitOfWork
 
 
@@ -48,62 +50,61 @@ class ExperimentService:
 
     async def _generate_decisions(self, experiment_id: UUID) -> list[Decision]:
         secure_random = random.SystemRandom()
-        async with self.uow:
-            experiment = await self.uow.experiment_repo.get_by_id_with_variants(experiment_id)
-            if not experiment:
-                raise ExperimentNotFoundError
+        experiment = await self.uow.experiment_repo.get_by_id_with_variants(experiment_id)
+        if not experiment:
+            raise ExperimentNotFoundError
 
-            users = await self.uow.user_repo.get_all()
-            if not users:
-                return []
+        users = await self.uow.user_repo.get_all()
+        if not users:
+            return []
 
-            total_users = len(users)
-            participants_count = int(total_users * experiment.part / 100)
+        total_users = len(users)
+        participants_count = int(total_users * experiment.part / 100)
 
-            if participants_count == 0:
-                return []
+        if participants_count == 0:
+            return []
 
-            sorted_users = sorted(users, key=lambda u: u.exp_index, reverse=True)
+        sorted_users = sorted(users, key=lambda u: u.exp_index, reverse=True)
 
-            participating_users = []
-            for user in sorted_users:
-                if len(participating_users) >= participants_count:
-                    break
+        participating_users = []
+        for user in sorted_users:
+            if len(participating_users) >= participants_count:
+                break
 
-                threshold = user.exp_index / 100.0
-                rand_value = secure_random.random()
+            threshold = user.exp_index / 100.0
+            rand_value = secure_random.random()
 
-                if rand_value <= threshold:
-                    participating_users.append(user)
+            if rand_value <= threshold:
+                participating_users.append(user)
 
-            if len(participating_users) < participants_count:
-                remaining = [u for u in sorted_users if u not in participating_users]
-                participating_users.extend(remaining[:participants_count - len(participating_users)])
+        if len(participating_users) < participants_count:
+            remaining = [u for u in sorted_users if u not in participating_users]
+            participating_users.extend(remaining[:participants_count - len(participating_users)])
 
-            variants = list(experiment.variants)
-            variant_pool: list[Variant] = []
-            for variant in variants:
-                variant_pool.extend([variant] * variant.weight)
+        variants = list(experiment.variants)
+        variant_pool: list[Variant] = []
+        for variant in variants:
+            variant_pool.extend([variant] * variant.weight)
 
-            decisions: list[Decision] = []
-            secure_random.shuffle(variant_pool)
+        decisions: list[Decision] = []
+        secure_random.shuffle(variant_pool)
 
-            for i, user in enumerate(participating_users):
-                selected_variant = variant_pool[i % len(variant_pool)]
+        for i, user in enumerate(participating_users):
+            selected_variant = variant_pool[i % len(variant_pool)]
 
-                existing = await self.uow.decision_repo.get_by_user_and_flag(
-                    user.id,
-                    experiment.flag_code
+            existing = await self.uow.decision_repo.get_by_user_and_flag(
+                user.id,
+                experiment.flag_code
+            )
+            if not existing:
+                decision = Decision(
+                    user_id=user.id,
+                    variant_id=selected_variant.id,
+                    isRequested=False,
+                    user=user,
+                    variant=selected_variant,
                 )
-                if not existing:
-                    decision = Decision(
-                        user_id=user.id,
-                        variant_id=selected_variant.id,
-                        isRequested=False,
-                        user=user,
-                        variant=selected_variant,
-                    )
-                    decisions.append(decision)
+                decisions.append(decision)
         return decisions
 
     async def _set_status(self, experiment: Experiment, status: ExperimentStatus) -> ExperimentReadResponse:
@@ -112,15 +113,23 @@ class ExperimentService:
                                       status=status,
                                       variants=[VariantData(**exp.model_dump()) for exp in experiment.variants])
 
-    async def create(self, user_data: TokenData, experiment_data: ExperimentCreateBody) -> ExperimentReadResponse:
+    async def create(self, user_data: TokenData, experiment_data: ExperimentCreateBody,
+                     status: ExperimentStatus | None = None) -> ExperimentReadResponse:
         async with self.uow:
             flag = await self.uow.flag_repo.get_by_code(experiment_data.flag_code)
             if not flag:
                 raise FlagNotFoundError
 
+            approvers = await self.uow.approver_repo.get_by_experimenter(user_data.id)
+            if len(approvers) < user_data.required:
+                raise DeficiencyApproversError
+
             try:
-                experiment = await self.uow.experiment_repo.add(
-                    Experiment(**experiment_data.model_dump(exclude={"variants"}), createdBy=user_data.id))
+                experiment = await self.uow.experiment_repo.add(Experiment(
+                    **experiment_data.model_dump(exclude={"variants"}),
+                    createdBy=user_data.id,
+                    status=status,
+                ))
             except DuplicateError as e:
                 raise VersionOfExperimentAlreadyExistsError from e
 
@@ -170,11 +179,17 @@ class ExperimentService:
     async def update(self, code: str, user_data: TokenData, data: ExperimentUpdateBody) -> ExperimentReadResponse:
         async with self.uow:
             experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code))
-            if not experiment.status == ExperimentStatus.DRAFT:
+            if experiment.status not in {ExperimentStatus.DRAFT, ExperimentStatus.REWORK}:
                 raise ExperimentInvalidStatusError
 
-            result = await self.create(user_data, ExperimentCreateBody(
-                **data.model_dump(), code=experiment.code, flag_code=experiment.flag_code))
+            result = await self.create(
+                user_data,
+                ExperimentCreateBody(
+                    **data.model_dump(),
+                    code=experiment.code,
+                    flag_code=experiment.flag_code),
+                status=ExperimentStatus.DRAFT
+            )
             _ = await self.uow.experiment_repo.update(experiment.id, ExperimentUpdate(isCurrent=False))
         return result
 
@@ -187,11 +202,16 @@ class ExperimentService:
 
     async def set_status_review(self, code: str) -> ExperimentReadResponse:
         async with self.uow:
-            return await self.set_status(code, ExperimentStatus.IN_REVIEW, {ExperimentStatus.DRAFT})
+            experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code))
+            if experiment.status == ExperimentStatus.DRAFT:
+                return await self._set_status(experiment, ExperimentStatus.IN_REVIEW)
+            elif experiment.status == ExperimentStatus.REWORK:
+                raise ExperimentReworkError
+            raise ExperimentInvalidStatusError
 
     async def set_status_draft(self, code: str) -> ExperimentReadResponse:
         async with self.uow:
-            return await self.set_status(code, ExperimentStatus.DRAFT, {ExperimentStatus.REJECTED})
+            return await self.set_status(code, ExperimentStatus.REWORK, {ExperimentStatus.REJECTED})
 
     async def stop_review(self, code: str) -> ExperimentReadResponse:
         async with self.uow:
@@ -211,7 +231,7 @@ class ExperimentService:
                     await self.uow.decision_repo.add(d)
 
             elif improvement >= rejected:
-                new_status = ExperimentStatus.DRAFT
+                new_status = ExperimentStatus.REWORK
             else:
                 new_status = ExperimentStatus.REJECTED
 
