@@ -35,14 +35,18 @@ class ExperimentRepository(BaseRepository[Experiment]):
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
 
-    async def get_by_code(self, code: str) -> Experiment | None:
+    async def get_by_code(self, code: str, version: float | None = None) -> Experiment | None:
         try:
-            result = await self.session.execute(
+            stmt = (
                 select(Experiment)
                 .options(selectinload(Experiment.variants)) # noqa
+                .options(selectinload(Experiment.creator))  # noqa
                 .where(Experiment.code == code)  # noqa
-                .where(Experiment.isCurrent == True)    # noqa
             )
+            stmt = stmt.where(Experiment.version == version) if version is not None\
+                else stmt.where(Experiment.isCurrent == True)    # noqa
+
+            result = await self.session.execute(stmt)
             return result.scalars().first()
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
@@ -69,19 +73,6 @@ class ExperimentRepository(BaseRepository[Experiment]):
             return list(result.scalars().all())
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
-
-    # async def get_active_by_flag(self, code: str) -> Experiment | None:
-    #     try:
-    #         result = await self.session.execute(
-    #             select(Experiment)
-    #             .options(selectinload(Experiment.variants)) # noqa
-    #             .where(Experiment.flag_code == code)  # noqa
-    #             .where(Experiment.isCurrent == True)    # noqa
-    #             .where(Experiment.status in [ExperimentStatus.RUNNING])
-    #         )
-    #         return result.scalar_one_or_none()
-    #     except SQLAlchemyError as e:
-    #         raise RepositoryError("Database error") from e
 
     async def set_status(self, id_: UUID, new_status: ExperimentStatus) -> None:
         stmt = update(Experiment).where(Experiment.id == id_).values(status=new_status) # noqa

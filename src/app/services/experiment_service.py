@@ -94,15 +94,12 @@ class ExperimentService:
 
     async def create(self, user_data: TokenData, experiment_data: ExperimentCreateBody) -> ExperimentReadResponse:
         async with self.uow:
-            try:
-                flag = await self.uow.flag_repo.get_by_code(experiment_data.flag_code)
-                if not flag:
-                    raise FlagNotFoundError
+            flag = await self.uow.flag_repo.get_by_code(experiment_data.flag_code)
+            if not flag:
+                raise FlagNotFoundError
 
-                experiment = await self.uow.experiment_repo.add(
-                    Experiment(**experiment_data.model_dump(exclude={"variants"}), createdBy=user_data.id))
-            except DuplicateError:
-                raise ExperimentAlreadyExistsError from DuplicateError
+            experiment = await self.uow.experiment_repo.add(
+                Experiment(**experiment_data.model_dump(exclude={"variants"}), createdBy=user_data.id))
 
             added_variants: list[VariantData] = []
             for variant_data in experiment_data.variants:
@@ -110,6 +107,13 @@ class ExperimentService:
                     Variant(**variant_data.model_dump(), experiment_id=experiment.id))
                 added_variants.append(VariantData(**variant.model_dump()))
             return ExperimentReadResponse(**experiment.model_dump(), variants=added_variants)
+
+    async def create_new(self, user_data: TokenData, experiment_data: ExperimentCreateBody) -> ExperimentReadResponse:
+        async with self.uow:
+            experiment = await self.uow.experiment_repo.get_by_code(experiment_data.code)
+            if experiment:
+                raise ExperimentAlreadyExistsError
+        return await self.create(user_data, experiment_data)
 
     async def get_all_experiments(self, pagination: PaginationParams) -> Page[ExperimentReadResponse]:
         async with self.uow:

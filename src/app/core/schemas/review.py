@@ -15,12 +15,21 @@ class ReviewResult(str, Enum):
 
 
 class ReviewCreateBody(PyModel):
-    experiment_id: UUID
+    experiment_code: Annotated[str | None, Field(max_length=100)]
     result: ReviewResult
     comment: Annotated[str | None, Field(max_length=500)]
 
 
-class ReviewDataResponse(ReviewCreateBody, DatetimeResponse):
+class ReviewData(ReviewCreateBody):
     id: UUID
     createdAt: datetime
     approvedBy: UUID
+
+
+class ReviewReadResponse(ReviewData, DatetimeResponse):
+    pass
+
+
+class ReviewResultsResponse(DatetimeResponse):
+    required: int | None
+    items: list[ReviewReadResponse]
