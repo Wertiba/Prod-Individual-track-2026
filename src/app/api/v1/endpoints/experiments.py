@@ -60,7 +60,7 @@ async def to_draft(_: ExperimenterUserDep, experiment_service: ExperimentService
     return await experiment_service.set_status_draft(data.code)
 
 
-@router.post("/status/stop-review", response_model=ExperimentReadResponse, status_code=status.HTTP_200_OK)
+@router.post("/status/stop-review", response_model=ExperimentReadResponse, status_code=status.HTTP_202_ACCEPTED)
 async def stop_review(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
                     data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
     return await experiment_service.stop_review(data.code)

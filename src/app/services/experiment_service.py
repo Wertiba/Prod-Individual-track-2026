@@ -101,8 +101,6 @@ class ExperimentService:
                     user_id=user.id,
                     variant_id=selected_variant.id,
                     isRequested=False,
-                    user=user,
-                    variant=selected_variant,
                 )
                 decisions.append(decision)
         return decisions
