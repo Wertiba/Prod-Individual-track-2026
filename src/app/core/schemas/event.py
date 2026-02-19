@@ -26,3 +26,32 @@ class EventData(EventCreateBody):
 
 class EventReadResponse(EventData, DatetimeResponse):
     pass
+
+
+class SendEventData(PyModel):
+    eventKey: str
+    decision_id: UUID
+    eventCatalog_code: Annotated[str, Field(max_length=100)]
+    data: dict | None = None
+
+
+class SendEventResponse(SendEventData, DatetimeResponse):
+    id: UUID
+    createdAt: datetime
+
+
+class EventBatchBody(PyModel):
+    events: list[dict]
+
+
+class EventErrorDetail(PyModel):
+    eventKey: str
+    reason: str
+
+
+class EventBatchResponse(PyModel):
+    accepted: int
+    duplicates: int
+    rejected: int
+    total: int
+    errors: list[EventErrorDetail] = []
