@@ -76,3 +76,15 @@ async def to_running(_: ExperimenterUserDep, experiment_service: ExperimentServi
 async def to_paused(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
                     data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
     return await experiment_service.set_status_paused(data.code)
+
+
+@router.post("/status/completed", response_model=ExperimentReadResponse, status_code=status.HTTP_202_ACCEPTED)
+async def to_completed(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
+                    data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
+    return await experiment_service.set_status_completed(data.code)
+
+
+@router.post("/status/archived", response_model=ExperimentReadResponse, status_code=status.HTTP_202_ACCEPTED)
+async def to_archived(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
+                    data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
+    return await experiment_service.set_status_archived(data.code)

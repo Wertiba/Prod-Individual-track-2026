@@ -10,6 +10,7 @@ from app.core.exceptions.base import UnprocessableEntityError
 from app.core.exceptions.event_exs import EventAlreadyExistsError, EventNotFoundError
 from app.core.exceptions.experiment_exs import (
     ExperimentAlreadyExistsError,
+    ExperimentAlreadyRunningError,
     ExperimentInvalidStatusError,
     ExperimentNotFoundError,
     ExperimentReworkError,
@@ -70,6 +71,10 @@ DOMAIN_TO_API: dict[type, callable] = {
     ExperimentReworkError: lambda path, exc=None: Conflict(
         path=path,
         message="Experiment need to be changed after reviews",
+    ),
+    ExperimentAlreadyRunningError: lambda path, exc=None: Conflict(
+        path=path,
+        message="Another experiment for this flag already in status running or paused",
     ),
     VersionOfExperimentAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,

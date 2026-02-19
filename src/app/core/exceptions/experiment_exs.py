@@ -19,3 +19,7 @@ class ExperimentInvalidStatusError(EntityError):
 
 class ExperimentReworkError(EntityError):
     pass
+
+
+class ExperimentAlreadyRunningError(EntityError):
+    pass

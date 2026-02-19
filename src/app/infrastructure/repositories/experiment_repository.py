@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -98,17 +99,16 @@ class ExperimentRepository(BaseRepository[Experiment]):
 
     async def check_flag(
             self,
-            flag_code: str,
-            statuses: list[ExperimentStatus] | None = None
+            flag_code: str
     ) -> list[Experiment] | None:
-        if statuses is None:
-            statuses = [ExperimentStatus.RUNNING, ExperimentStatus.PAUSED]
         try:
             result = await self.session.execute(
                 select(Experiment)
                 .options(selectinload(Experiment.variants)) # noqa
                 .options(selectinload(Experiment.metrics))  # noqa
-                .where(Experiment.flag_code == flag_code, Experiment.ststus in statuses)  # noqa
+                .where(and_(
+                    Experiment.flag_code == flag_code,  # noqa
+                    Experiment.status.in_([ExperimentStatus.RUNNING, ExperimentStatus.PAUSED])))  # noqa
             )
             return result.scalar_one_or_none()
         except SQLAlchemyError as e:

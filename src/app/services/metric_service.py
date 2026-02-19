@@ -34,3 +34,6 @@ class MetricService:
                 raise MetricNotFoundError
 
             return MetricReadResponse(**metric_exists.model_dump())
+
+    async def get_values(self, code: str) -> ...:
+        pass

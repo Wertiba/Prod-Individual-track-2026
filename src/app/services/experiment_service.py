@@ -5,6 +5,7 @@ from uuid import UUID
 from app.core.exceptions.base import DuplicateError
 from app.core.exceptions.experiment_exs import (
     ExperimentAlreadyExistsError,
+    ExperimentAlreadyRunningError,
     ExperimentInvalidStatusError,
     ExperimentNotFoundError,
     ExperimentReworkError,
@@ -110,9 +111,10 @@ class ExperimentService:
 
     async def _set_status(self, experiment: Experiment, status: ExperimentStatus) -> ExperimentReadResponse:
         await self.uow.experiment_repo.set_status(experiment.id, status)
-        return ExperimentReadResponse(**experiment.model_dump(exclude={"status"}),
+        return ExperimentReadResponse(**experiment.model_dump(exclude={"status", "metrics"}),
                                       status=status,
-                                      variants=[VariantData(**exp.model_dump()) for exp in experiment.variants])
+                                      variants=[VariantData(**exp.model_dump()) for exp in experiment.variants],
+                                      metrics=[MetricData(**exp.model_dump()) for exp in experiment.metrics])
 
     async def create(self, user_data: TokenData, experiment_data: ExperimentCreateBody,
                      status: ExperimentStatus | None = None) -> ExperimentReadResponse:
@@ -247,8 +249,15 @@ class ExperimentService:
 
     async def set_status_running(self, code: str) -> ExperimentReadResponse:
         async with self.uow:
-            return await self.set_status(code, ExperimentStatus.RUNNING, {ExperimentStatus.APPROVED,
-                                                                          ExperimentStatus.PAUSED})
+            experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code))
+
+            if experiment.status in {ExperimentStatus.PAUSED, ExperimentStatus.APPROVED}:
+                if experiment.status == ExperimentStatus.APPROVED:
+                    active = await self.uow.experiment_repo.check_flag(experiment.flag_code)
+                    if active:
+                        raise ExperimentAlreadyRunningError
+                return await self._set_status(experiment, ExperimentStatus.RUNNING)
+            raise ExperimentInvalidStatusError
 
     async def set_status_paused(self, code: str) -> ExperimentReadResponse:
         async with self.uow:
@@ -274,3 +283,15 @@ class ExperimentService:
                     value=result.variant.value
                 ))
         return DecisionResponse(items=decisions)
+
+    async def set_status_completed(self, code: str) -> ExperimentReadResponse:
+        async with self.uow:
+            return await self.set_status(
+                code,
+                ExperimentStatus.COMPLETED,
+                {ExperimentStatus.RUNNING, ExperimentStatus.PAUSED}
+            )
+
+    async def set_status_archived(self, code: str) -> ExperimentReadResponse:
+        async with self.uow:
+            return await self.set_status(code, ExperimentStatus.ARCHIVED, {ExperimentStatus.COMPLETED})
