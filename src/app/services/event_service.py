@@ -16,9 +16,18 @@ class EventService:
     async def create(self, user_data: TokenData, event_data: EventCreateBody) -> EventReadResponse:
         async with self.uow:
             try:
-                metric = await self.uow.event_repo.add(EventCatalog(**event_data.model_dump(),
-                                                                      createdBy=user_data.id))
-                return EventReadResponse(**metric.model_dump())
+                metric_codes = event_data.metric_codes
+                data = event_data.model_dump(exclude={"metric_codes"})
+
+                event = EventCatalog(**data, createdBy=user_data.id)
+                event = await self.uow.event_repo.add(event)
+
+                if metric_codes:
+                    metrics = await self.uow.metric_repo.get_by_codes(metric_codes)
+                    event = await self.uow.event_repo.get_by_code_with_metrics(event.code)
+                    event.metrics = metrics
+
+                return EventReadResponse(**event.model_dump())
             except DuplicateError:
                 raise EventAlreadyExistsError from DuplicateError
 
@@ -29,10 +38,10 @@ class EventService:
             total = await self.uow.event_repo.count()
             return Page.build(items=valid, total=total, pagination=pagination)
 
-    async def get_by_code(self, code: str) -> EventReadResponse | None:
+    async def get_by_code(self, code: str) -> EventReadResponse:
         async with self.uow:
-            event_exists = await self.uow.event_repo.get_by_code(code)
-            if not event_exists:
+            event = await self.uow.event_repo.get_by_code_with_metrics(code)
+            if not event:
                 raise EventNotFoundError
 
-            return EventReadResponse(**event_exists.model_dump())
+            return EventReadResponse(**event.model_dump())

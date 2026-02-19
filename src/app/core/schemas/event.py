@@ -14,6 +14,7 @@ class EventCreateBody(PyModel):
     requiredParams: dict | None = None
     requiresExposure: bool
     inArchive: bool = False
+    metric_codes: list[str] = []
 
 
 class EventData(EventCreateBody):
