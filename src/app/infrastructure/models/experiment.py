@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.core.schemas.experiment import ExperimentStatus
@@ -36,6 +37,10 @@ class Experiment(SQLModel, table=True):
     metrics: list["Metric"] = Relationship(back_populates="experiment")
     variants: list["Variant"] = Relationship(back_populates="experiment")
     reviews: list["Review"] = Relationship(back_populates="experiment")
+
+    __table_args__ = (
+        UniqueConstraint('code', 'version', name='uq_code_version'),
+    )
 
 
 class Variant(SQLModel, table=True):

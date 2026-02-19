@@ -9,5 +9,9 @@ class ExperimentAlreadyExistsError(EntityError):
     pass
 
 
+class VersionOfExperimentAlreadyExistsError(EntityError):
+    pass
+
+
 class ExperimentInvalidStatusError(EntityError):
     pass

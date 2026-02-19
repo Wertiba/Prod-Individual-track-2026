@@ -2,11 +2,12 @@ import random
 from collections.abc import Awaitable, Callable
 from uuid import UUID
 
-from app.core.exceptions.base import DuplicateError, UnprocessableEntityError
+from app.core.exceptions.base import DuplicateError
 from app.core.exceptions.experiment_exs import (
     ExperimentAlreadyExistsError,
     ExperimentInvalidStatusError,
     ExperimentNotFoundError,
+    VersionOfExperimentAlreadyExistsError,
 )
 from app.core.exceptions.flag_exs import FlagNotFoundError
 from app.core.schemas.decision import DecisionBody, DecisionData, DecisionResponse
@@ -98,8 +99,11 @@ class ExperimentService:
             if not flag:
                 raise FlagNotFoundError
 
-            experiment = await self.uow.experiment_repo.add(
-                Experiment(**experiment_data.model_dump(exclude={"variants"}), createdBy=user_data.id))
+            try:
+                experiment = await self.uow.experiment_repo.add(
+                    Experiment(**experiment_data.model_dump(exclude={"variants"}), createdBy=user_data.id))
+            except DuplicateError as e:
+                raise VersionOfExperimentAlreadyExistsError from e
 
             added_variants: list[VariantData] = []
             for variant_data in experiment_data.variants:
@@ -132,9 +136,9 @@ class ExperimentService:
             )
             return self._convert_to_response(experiment)
 
-    async def get_by_code(self, code: str) -> ExperimentReadResponse:
+    async def get_by_code(self, code: str, version: float | None = None) -> ExperimentReadResponse:
         async with self.uow:
-            experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code))
+            experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code, version))
             return self._convert_to_response(experiment)
 
     async def get_history(self, code: str) -> ExperimentHistoryResponse:
@@ -150,11 +154,12 @@ class ExperimentService:
             if not experiment:
                 raise ExperimentNotFoundError
             if not experiment.status == ExperimentStatus.DRAFT:
-                raise UnprocessableEntityError
-            experiment = await self.uow.experiment_repo.update(experiment.id, ExperimentUpdate(isCurrent=False))
+                raise ExperimentInvalidStatusError
 
-        return await self.create(user_data, ExperimentCreateBody(
+        result = await self.create(user_data, ExperimentCreateBody(
             **data.model_dump(), code=experiment.code, flag_code=experiment.flag_code))
+        _ = await self.uow.experiment_repo.update(experiment.id, ExperimentUpdate(isCurrent=False))
+        return result
 
     async def set_status(self, code: str,
                          status: ExperimentStatus, old: set[ExperimentStatus]) -> ExperimentReadResponse:

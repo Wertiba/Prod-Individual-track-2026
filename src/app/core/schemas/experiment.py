@@ -57,6 +57,7 @@ class ExperimentUpdateBody(ValidateVariants):
     name: Annotated[str, Field(max_length=255)]
     target: Annotated[str | None, Field(max_length=255)] = None
     description: Annotated[str | None, Field(max_length=500)] = None
+    version: Annotated[float, Field(ge=0)] = None
     part: Annotated[int, Field(ge=0, le=100)]
     variants: list[VariantCreateBody]
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Query, status
 
 from app.api.v1.dependencies import (
     AnyViewUserDep,
@@ -32,9 +32,9 @@ async def get_all(_: AnyViewUserDep, experiment_service: ExperimentServiceDep,
 
 
 @router.get("/{code}", response_model=ExperimentReadResponse, status_code=status.HTTP_200_OK)
-async def get_current(_: AnyViewUserDep, code: str,
-                      experiment_service: ExperimentServiceDep) -> ExperimentReadResponse | None:
-    return await experiment_service.get_by_code(code)
+async def get_current(_: AnyViewUserDep, code: str, experiment_service: ExperimentServiceDep,
+                      version: float | None = Query(default=None)) -> ExperimentReadResponse | None:
+    return await experiment_service.get_by_code(code, version)
 
 
 @router.get("/history/{code}", response_model=ExperimentHistoryResponse, status_code=status.HTTP_200_OK)

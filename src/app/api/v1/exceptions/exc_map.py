@@ -11,6 +11,7 @@ from app.core.exceptions.experiment_exs import (
     ExperimentAlreadyExistsError,
     ExperimentInvalidStatusError,
     ExperimentNotFoundError,
+    VersionOfExperimentAlreadyExistsError,
 )
 from app.core.exceptions.flag_exs import FlagAlreadyExistsError, FlagNotFoundError
 from app.core.exceptions.metric_exs import MetricAlreadyExistsError, MetricNotFoundError
@@ -58,6 +59,10 @@ DOMAIN_TO_API: dict[type, callable] = {
     ExperimentInvalidStatusError: lambda path, exc=None: Conflict(
         path=path,
         message="Invalid experiment status",
+    ),
+    VersionOfExperimentAlreadyExistsError: lambda path, exc=None: Conflict(
+        path=path,
+        message="Invalid experiment version",
     ),
     UserAlreadyExistsError: lambda path, exc=None: Conflict(
         path=path,
