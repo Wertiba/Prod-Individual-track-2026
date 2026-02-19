@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from app.core.exceptions.base import DuplicateError
 from app.core.exceptions.metric_exs import MetricAlreadyExistsError, MetricNotFoundError
 from app.core.schemas.metric import MetricCreateBody, MetricReadResponse
@@ -29,9 +27,9 @@ class MetricService:
             total = await self.uow.metric_repo.count()
             return Page.build(items=valid, total=total, pagination=pagination)
 
-    async def get_by_id(self, metric_id: UUID) -> MetricReadResponse | None:
+    async def get_by_code(self, code: str) -> MetricReadResponse | None:
         async with self.uow:
-            metric_exists = await self.uow.metric_repo.get_by_id(metric_id)
+            metric_exists = await self.uow.metric_repo.get_by_code(code)
             if not metric_exists:
                 raise MetricNotFoundError
 

@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from fastapi import APIRouter, status
 
 from app.api.v1.dependencies import AdminUserDep, AnyViewUserDep, MetricServiceDep, PaginationDep
@@ -21,6 +19,6 @@ async def get_all(_: AnyViewUserDep, metric_service: MetricServiceDep,
     return await metric_service.get_all_catalog_metrics(pagination)
 
 
-@router.get("/{id}", response_model=MetricReadResponse, status_code=status.HTTP_200_OK)
-async def get_current(_: AnyViewUserDep, id: UUID, metric_service: MetricServiceDep) -> MetricReadResponse | None:
-    return await metric_service.get_by_id(id)
+@router.get("/{code}", response_model=MetricReadResponse, status_code=status.HTTP_200_OK)
+async def get_current(_: AnyViewUserDep, code: str, metric_service: MetricServiceDep) -> MetricReadResponse | None:
+    return await metric_service.get_by_code(code)
