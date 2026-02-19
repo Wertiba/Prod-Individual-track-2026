@@ -5,7 +5,6 @@ from app.api.v1.dependencies import (
     ExperimenterUserDep,
     ExperimentServiceDep,
     PaginationDep,
-    ReviewServiceDep,
 )
 from app.core.schemas.experiment import (
     ExperimentCreateBody,
@@ -64,4 +63,16 @@ async def to_draft(_: ExperimenterUserDep, experiment_service: ExperimentService
 @router.post("/status/stop-review", response_model=ExperimentReadResponse, status_code=status.HTTP_200_OK)
 async def stop_review(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
                     data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
-    return await experiment_service.set_status_review(data.code)
+    return await experiment_service.stop_review(data.code)
+
+
+@router.post("/status/running", response_model=ExperimentReadResponse, status_code=status.HTTP_202_ACCEPTED)
+async def to_running(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
+                    data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
+    return await experiment_service.set_status_running(data.code)
+
+
+@router.post("/status/paused", response_model=ExperimentReadResponse, status_code=status.HTTP_202_ACCEPTED)
+async def to_paused(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
+                    data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
+    return await experiment_service.set_status_paused(data.code)

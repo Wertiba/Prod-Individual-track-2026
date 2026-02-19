@@ -20,6 +20,7 @@ from app.core.schemas.experiment import (
     ExperimentUpdateBody,
     VariantData,
 )
+from app.core.schemas.review import ReviewResult
 from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
 from app.infrastructure.models import Decision, Experiment, Variant
@@ -62,12 +63,22 @@ class ExperimentService:
             if participants_count == 0:
                 return []
 
-            weights = [user.exp_index for user in users]
-            participating_users = secure_random.choices(
-                users,
-                weights=weights,
-                k=participants_count
-            )
+            sorted_users = sorted(users, key=lambda u: u.exp_index, reverse=True)
+
+            participating_users = []
+            for user in sorted_users:
+                if len(participating_users) >= participants_count:
+                    break
+
+                threshold = user.exp_index / 100.0
+                rand_value = secure_random.random()
+
+                if rand_value <= threshold:
+                    participating_users.append(user)
+
+            if len(participating_users) < participants_count:
+                remaining = [u for u in sorted_users if u not in participating_users]
+                participating_users.extend(remaining[:participants_count - len(participating_users)])
 
             variants = list(experiment.variants)
             variant_pool: list[Variant] = []
@@ -75,6 +86,8 @@ class ExperimentService:
                 variant_pool.extend([variant] * variant.weight)
 
             decisions: list[Decision] = []
+            secure_random.shuffle(variant_pool)
+
             for i, user in enumerate(participating_users):
                 selected_variant = variant_pool[i % len(variant_pool)]
 
@@ -92,6 +105,12 @@ class ExperimentService:
                     )
                     decisions.append(decision)
         return decisions
+
+    async def _set_status(self, experiment: Experiment, status: ExperimentStatus) -> ExperimentReadResponse:
+        await self.uow.experiment_repo.set_status(experiment.id, status)
+        return ExperimentReadResponse(**experiment.model_dump(exclude={"status"}),
+                                      status=status,
+                                      variants=[VariantData(**exp.model_dump()) for exp in experiment.variants])
 
     async def create(self, user_data: TokenData, experiment_data: ExperimentCreateBody) -> ExperimentReadResponse:
         async with self.uow:
@@ -150,38 +169,62 @@ class ExperimentService:
 
     async def update(self, code: str, user_data: TokenData, data: ExperimentUpdateBody) -> ExperimentReadResponse:
         async with self.uow:
-            experiment = await self.uow.experiment_repo.get_by_code(code)
-            if not experiment:
-                raise ExperimentNotFoundError
+            experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code))
             if not experiment.status == ExperimentStatus.DRAFT:
                 raise ExperimentInvalidStatusError
 
-        result = await self.create(user_data, ExperimentCreateBody(
-            **data.model_dump(), code=experiment.code, flag_code=experiment.flag_code))
-        _ = await self.uow.experiment_repo.update(experiment.id, ExperimentUpdate(isCurrent=False))
+            result = await self.create(user_data, ExperimentCreateBody(
+                **data.model_dump(), code=experiment.code, flag_code=experiment.flag_code))
+            _ = await self.uow.experiment_repo.update(experiment.id, ExperimentUpdate(isCurrent=False))
         return result
 
     async def set_status(self, code: str,
                          status: ExperimentStatus, old: set[ExperimentStatus]) -> ExperimentReadResponse:
-        async with self.uow:
-            experiment = await self.uow.experiment_repo.get_by_code(code)
-            if not experiment:
-                raise ExperimentNotFoundError
-
-            if experiment.status in old:
-                await self.uow.experiment_repo.set_status(experiment.id, status)
-                return ExperimentReadResponse(**experiment.model_dump(exclude={"status"}),
-                                              status=status,
-                                              variants=[VariantData(**exp.model_dump()) for exp in experiment.variants])
-            raise ExperimentInvalidStatusError
+        experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code))
+        if experiment.status in old:
+            return await self._set_status(experiment, status)
+        raise ExperimentInvalidStatusError
 
     async def set_status_review(self, code: str) -> ExperimentReadResponse:
-        # exp = await self.get_by_code(code)
-        # decisions = await self._generate_decisions(exp.id)
-        return await self.set_status(code, ExperimentStatus.IN_REVIEW, {ExperimentStatus.DRAFT})
+        async with self.uow:
+            return await self.set_status(code, ExperimentStatus.IN_REVIEW, {ExperimentStatus.DRAFT})
 
     async def set_status_draft(self, code: str) -> ExperimentReadResponse:
-        return await self.set_status(code, ExperimentStatus.DRAFT, {ExperimentStatus.REJECTED})
+        async with self.uow:
+            return await self.set_status(code, ExperimentStatus.DRAFT, {ExperimentStatus.REJECTED})
+
+    async def stop_review(self, code: str) -> ExperimentReadResponse:
+        async with self.uow:
+            experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code))
+            if experiment.status != ExperimentStatus.IN_REVIEW:
+                raise ExperimentInvalidStatusError
+
+            results = [r.result for r in experiment.reviews]
+            approved, rejected, improvement = results.count(ReviewResult.APPROVED), results.count(
+                ReviewResult.REJECTED), results.count(ReviewResult.IMPROVEMENT)
+            required = experiment.creator.required
+
+            if approved >= required and approved >= rejected and approved >= improvement:
+                new_status = ExperimentStatus.APPROVED
+                decisions = await self._generate_decisions(experiment.id)
+                for d in decisions:
+                    await self.uow.decision_repo.add(d)
+
+            elif improvement >= rejected:
+                new_status = ExperimentStatus.DRAFT
+            else:
+                new_status = ExperimentStatus.REJECTED
+
+            return await self._set_status(experiment, new_status)
+
+    async def set_status_running(self, code: str) -> ExperimentReadResponse:
+        async with self.uow:
+            return await self.set_status(code, ExperimentStatus.RUNNING, {ExperimentStatus.APPROVED,
+                                                                          ExperimentStatus.PAUSED})
+
+    async def set_status_paused(self, code: str) -> ExperimentReadResponse:
+        async with self.uow:
+            return await self.set_status(code, ExperimentStatus.PAUSED, {ExperimentStatus.RUNNING})
 
     async def get_decisions(self, data: DecisionBody) -> DecisionResponse:
         decisions: list[DecisionData] = []

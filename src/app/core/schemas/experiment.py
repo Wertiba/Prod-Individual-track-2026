@@ -57,7 +57,7 @@ class ExperimentUpdateBody(ValidateVariants):
     name: Annotated[str, Field(max_length=255)]
     target: Annotated[str | None, Field(max_length=255)] = None
     description: Annotated[str | None, Field(max_length=500)] = None
-    version: Annotated[float, Field(ge=0)] = None
+    version: Annotated[float, Field(ge=0)]
     part: Annotated[int, Field(ge=0, le=100)]
     variants: list[VariantCreateBody]
 
@@ -69,6 +69,7 @@ class ExperimentUpdate(PyModel):
 class ExperimentCreateData(ExperimentUpdateBody):
     code: Annotated[str, Field(max_length=100)]
     flag_code: Annotated[str, Field(max_length=255)]
+    version: Annotated[float | None, Field(ge=0)] = None
 
 
 class ExperimentCreateBody(ExperimentCreateData, ValidateVariants):
