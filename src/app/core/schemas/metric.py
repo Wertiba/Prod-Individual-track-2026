@@ -22,6 +22,11 @@ class MetricType(str, Enum):
     RATIO = "RATIO"
 
 
+class GuardrailAction(str, Enum):
+    PAUSE = "PAUSE"
+    ROLLBACK = "ROLLBACK"
+
+
 class MetricCreateBody(PyModel):
     code: Annotated[str, Field(max_length=100)]
     name: Annotated[str, Field(max_length=255)]

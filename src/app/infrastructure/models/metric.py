@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
 from app.core.schemas.experiment import MetricRole
-from app.core.schemas.metric import AggregationUnit, MetricType
+from app.core.schemas.metric import AggregationUnit, GuardrailAction, MetricType
 
 if TYPE_CHECKING:
     from app.infrastructure.models import User
@@ -50,24 +50,12 @@ class Metric(SQLModel, table=True):
 
     window: int | None = Field(nullable=True, default=864000, ge=0)
     threshold: int | None = Field(nullable=True, ge=0)
-    action_code: str | None = Field(nullable=True, foreign_key="guardrail_actions.code")
+    action_code: GuardrailAction | None = Field(nullable=True)
 
     experiment: "Experiment" = Relationship(back_populates="metrics")
     metric_catalog: "MetricCatalog" = Relationship(back_populates="metrics")
-    guardrail_action: "GuardrailAction" = Relationship(back_populates="guardrails")
 
     history: list["MetricHistory"] = Relationship(back_populates="metric")
-
-
-class GuardrailAction(SQLModel, table=True):
-    __tablename__ = "guardrail_actions"
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    code: str = Field(unique=True, nullable=False, max_length=100, index=True)
-    name: str = Field(nullable=False, max_length=255)
-    description: str | None = Field(nullable=True, max_length=500)
-
-    guardrails: list["Metric"] = Relationship(back_populates="guardrail_action")
 
 
 class MetricHistory(SQLModel, table=True):
