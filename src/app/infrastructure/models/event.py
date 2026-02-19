@@ -9,22 +9,11 @@ if TYPE_CHECKING:
     from app.infrastructure.models.decision import Decision
 
 
-class EventCatalogMetricCatalogLink(SQLModel, table=True):
-    __tablename__ = "event_catalog_metric_catalog"
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    event_catalog_code: str = Field(
-        foreign_key="event_catalog.code", primary_key=True
-    )
-    metric_catalog_code: str = Field(
-        foreign_key="metric_catalog.code", primary_key=True
-    )
-
-
 class EventCatalog(SQLModel, table=True):
     __tablename__ = 'event_catalog'
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    metricCatalog_code: str = Field(foreign_key="metric_catalog.code")
     code: str = Field(unique=True, max_length=100, nullable=False, index=True)
 
     name: str = Field(nullable=False, max_length=255)
@@ -38,10 +27,7 @@ class EventCatalog(SQLModel, table=True):
     createdAt: datetime = Field(default_factory=datetime.now)
 
     creator: "User" = Relationship(back_populates="created_catalog_events")
-    metrics: list["MetricCatalog"] = Relationship(
-        back_populates="events",
-        link_model=EventCatalogMetricCatalogLink
-    )
+    metrics: list["MetricCatalog"] = Relationship(back_populates="events")
 
     events: list["Event"] = Relationship(back_populates="event_catalog")
 
