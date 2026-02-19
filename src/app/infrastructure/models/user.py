@@ -58,7 +58,6 @@ class User(SQLModel, table=True):
         link_model=UserRole,
     )
     created_catalog_metrics: list["MetricCatalog"] = Relationship(back_populates="creator")
-    added_metrics: list["Metric"] = Relationship(back_populates="creator")
     created_flags: list["Flag"] = Relationship(back_populates="creator")
     created_experiments: list["Experiment"] = Relationship(back_populates="creator")
     decisions: list["Decision"] = Relationship(back_populates="user")

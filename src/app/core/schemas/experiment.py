@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Annotated, Self
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.core.schemas.base import DatetimeResponse, PyModel
 
@@ -20,6 +20,12 @@ class ExperimentStatus(str, Enum):
     REWORK = "REWORK"
 
 
+class MetricRole(str, Enum):
+    MAIN = "MAIN"
+    ADDITIONAL = "ADDITIONAL"
+    GUARDRAIL = "GUARDRAIL"
+
+
 class VariantCreateBody(PyModel):
     name: Annotated[str, Field(max_length=255)]
     value: Annotated[str, Field(max_length=255)]
@@ -31,9 +37,36 @@ class VariantData(VariantCreateBody):
     experiment_id: UUID
 
 
-class ValidateVariants(PyModel):
-    part: Annotated[int, Field(le=100, ge=0)]
+class MetricAssign(PyModel):
+    metricCatalog_code: Annotated[str, Field(max_length=100)]
+    role: MetricRole
+    time_from: datetime | None = None
+    time_to: datetime | None = None
+    window: Annotated[int | None, Field(ge=0)] = None
+    threshold: Annotated[int | None, Field(ge=0)] = None
+    action_code: Annotated[str | None, Field(max_length=100)] = None
+
+    @field_validator("time_from", "time_to", mode="after")
+    @classmethod
+    def strip_timezone(cls, v: datetime | None) -> datetime | None:
+        if v is not None and v.tzinfo is not None:
+            return v.astimezone(UTC).replace(tzinfo=None)
+        return v
+
+
+class MetricData(MetricAssign):
+    id: UUID
+    experiment_id: UUID
+
+
+class ExperimentUpdateBody(PyModel):
+    name: Annotated[str, Field(max_length=255)]
+    target: Annotated[str | None, Field(max_length=255)] = None
+    description: Annotated[str | None, Field(max_length=500)] = None
+    version: Annotated[float, Field(ge=0)]
+    part: Annotated[int, Field(ge=0, le=100)]
     variants: list[VariantCreateBody]
+    metrics: list[MetricAssign]
 
     @model_validator(mode="after")
     def validate_weights(self) -> Self:
@@ -53,14 +86,13 @@ class ValidateVariants(PyModel):
 
         return self
 
-
-class ExperimentUpdateBody(ValidateVariants):
-    name: Annotated[str, Field(max_length=255)]
-    target: Annotated[str | None, Field(max_length=255)] = None
-    description: Annotated[str | None, Field(max_length=500)] = None
-    version: Annotated[float, Field(ge=0)]
-    part: Annotated[int, Field(ge=0, le=100)]
-    variants: list[VariantCreateBody]
+    @model_validator(mode="after")
+    def validate_metrics(self) -> Self:
+        values = [m.role for m in self.metrics]
+        main_count = values.count(MetricRole.MAIN)
+        if main_count > 1:
+            raise ValueError("Experiment must have exactly one metric")
+        return self
 
 
 class ExperimentUpdate(PyModel):
@@ -73,7 +105,7 @@ class ExperimentCreateData(ExperimentUpdateBody):
     version: Annotated[float | None, Field(ge=0)] = None
 
 
-class ExperimentCreateBody(ExperimentCreateData, ValidateVariants):
+class ExperimentCreateBody(ExperimentCreateData):
     pass
 
 
@@ -89,6 +121,7 @@ class ExperimentData(ExperimentCreateData, ExperimentSetStatusBody):
     createdBy: UUID
     createdAt: datetime
     variants: list[VariantData]
+    metrics: list[MetricData]
 
 
 class ExperimentReadResponse(ExperimentData, DatetimeResponse):

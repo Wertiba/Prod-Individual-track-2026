@@ -20,12 +20,13 @@ from app.core.schemas.experiment import (
     ExperimentStatus,
     ExperimentUpdate,
     ExperimentUpdateBody,
+    MetricData,
     VariantData,
 )
 from app.core.schemas.review import ReviewResult
 from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
-from app.infrastructure.models import Decision, Experiment, Variant
+from app.infrastructure.models import Decision, Experiment, Metric, Variant
 from app.infrastructure.unit_of_work import UnitOfWork
 
 
@@ -36,9 +37,11 @@ class ExperimentService:
     @staticmethod
     def _convert_to_response(experiment: Experiment) -> ExperimentReadResponse:
         variants = [VariantData(**v.model_dump()) for v in experiment.variants]
+        metrics = [MetricData(**m.model_dump()) for m in experiment.metrics]
         return ExperimentReadResponse(
             **experiment.model_dump(),
-            variants=variants
+            variants=variants,
+            metrics=metrics
         )
 
     @staticmethod
@@ -124,19 +127,24 @@ class ExperimentService:
 
             try:
                 experiment = await self.uow.experiment_repo.add(Experiment(
-                    **experiment_data.model_dump(exclude={"variants"}),
+                    **experiment_data.model_dump(exclude={"variants", "metrics"}),
                     createdBy=user_data.id,
                     status=status,
                 ))
             except DuplicateError as e:
                 raise VersionOfExperimentAlreadyExistsError from e
 
-            added_variants: list[VariantData] = []
             for variant_data in experiment_data.variants:
-                variant = await self.uow.experiment_repo.add_variant(
+                await self.uow.experiment_repo.add_variant(
                     Variant(**variant_data.model_dump(), experiment_id=experiment.id))
-                added_variants.append(VariantData(**variant.model_dump()))
-            return ExperimentReadResponse(**experiment.model_dump(), variants=added_variants)
+
+            for metric_data in experiment_data.metrics:
+                await self.uow.experiment_repo.add_metric(
+                    Metric(**metric_data.model_dump(), experiment_id=experiment.id)
+                )
+
+            experiment = await self.uow.experiment_repo.get_by_code(experiment.code)
+            return self._convert_to_response(experiment)
 
     async def create_new(self, user_data: TokenData, experiment_data: ExperimentCreateBody) -> ExperimentReadResponse:
         async with self.uow:
@@ -180,15 +188,17 @@ class ExperimentService:
             if experiment.status not in {ExperimentStatus.DRAFT, ExperimentStatus.REWORK}:
                 raise ExperimentInvalidStatusError
 
-            result = await self.create(
-                user_data,
-                ExperimentCreateBody(
-                    **data.model_dump(),
-                    code=experiment.code,
-                    flag_code=experiment.flag_code),
-                status=ExperimentStatus.DRAFT
-            )
-            _ = await self.uow.experiment_repo.update(experiment.id, ExperimentUpdate(isCurrent=False))
+        await self.create(
+            user_data,
+            ExperimentCreateBody(
+                **data.model_dump(),
+                code=experiment.code,
+                flag_code=experiment.flag_code),
+            status=ExperimentStatus.DRAFT
+        )
+        async with self.uow:
+            await self.uow.experiment_repo.update(experiment.id, ExperimentUpdate(isCurrent=False))
+            result = self._convert_to_response(await self.uow.experiment_repo.get_by_code(code))
         return result
 
     async def set_status(self, code: str,

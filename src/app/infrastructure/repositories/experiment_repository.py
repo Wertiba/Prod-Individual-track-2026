@@ -7,7 +7,7 @@ from sqlmodel import select, update
 
 from app.core.exceptions.base import RepositoryError
 from app.core.schemas.experiment import ExperimentStatus
-from app.infrastructure.models import Experiment, Variant
+from app.infrastructure.models import Experiment, Metric, Variant
 from app.infrastructure.repositories import BaseRepository
 
 
@@ -21,6 +21,15 @@ class ExperimentRepository(BaseRepository[Experiment]):
             await self.session.flush()
             await self.session.refresh(variant_data)
             return variant_data
+        except SQLAlchemyError as e:
+            raise RepositoryError("Database error") from e
+
+    async def add_metric(self, metric_data: Metric) -> Metric:
+        try:
+            self.session.add(metric_data)
+            await self.session.flush()
+            await self.session.refresh(metric_data)
+            return metric_data
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
 
@@ -42,6 +51,7 @@ class ExperimentRepository(BaseRepository[Experiment]):
                 .options(selectinload(Experiment.variants)) # noqa
                 .options(selectinload(Experiment.creator))  # noqa
                 .options(selectinload(Experiment.reviews))  # noqa
+                .options(selectinload(Experiment.metrics))  # noqa
                 .where(Experiment.code == code)  # noqa
             )
             stmt = stmt.where(Experiment.version == version) if version is not None\
@@ -57,6 +67,7 @@ class ExperimentRepository(BaseRepository[Experiment]):
             result = await self.session.execute(
                 select(Experiment)
                 .options(selectinload(Experiment.variants)) # noqa
+                .options(selectinload(Experiment.metrics))  # noqa
                 .where(Experiment.code == code)  # noqa
             )
             return list(result.scalars().all()) or None
@@ -68,6 +79,7 @@ class ExperimentRepository(BaseRepository[Experiment]):
             result = await self.session.execute(
                 select(Experiment)
                 .options(selectinload(Experiment.variants)) # noqa
+                .options(selectinload(Experiment.metrics))  # noqa
                 .offset(offset)
                 .limit(limit)
             )
@@ -95,6 +107,7 @@ class ExperimentRepository(BaseRepository[Experiment]):
             result = await self.session.execute(
                 select(Experiment)
                 .options(selectinload(Experiment.variants)) # noqa
+                .options(selectinload(Experiment.metrics))  # noqa
                 .where(Experiment.flag_code == flag_code, Experiment.ststus in statuses)  # noqa
             )
             return result.scalar_one_or_none()

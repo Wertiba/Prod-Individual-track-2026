@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
+from app.core.schemas.experiment import MetricRole
 from app.core.schemas.metric import AggregationUnit, MetricType
 from app.infrastructure.models.event import EventCatalogMetricCatalogLink
 
@@ -44,7 +45,7 @@ class Metric(SQLModel, table=True):
     experiment_id: uuid.UUID = Field(foreign_key="experiments.id", nullable=False)
     metricCatalog_code: str = Field(foreign_key="metric_catalog.code", nullable=False)
 
-    role: str = Field(nullable=False, default="DEF", max_length=255)
+    role: MetricRole = Field(nullable=False, default=MetricRole.ADDITIONAL, max_length=255)
     time_from: datetime | None = Field(
         nullable=True,
         default_factory=lambda: datetime.now(tz=UTC) - timedelta(days=10)
@@ -55,12 +56,8 @@ class Metric(SQLModel, table=True):
     threshold: int | None = Field(nullable=True, ge=0)
     action_code: str | None = Field(nullable=True, foreign_key="guardrail_actions.code")
 
-    addedBy: uuid.UUID = Field(foreign_key="users.id", nullable=False)
-    createdAt: datetime = Field(default_factory=datetime.now)
-
     experiment: "Experiment" = Relationship(back_populates="metrics")
     metric_catalog: "MetricCatalog" = Relationship(back_populates="metrics")
-    creator: "User" = Relationship(back_populates="added_metrics")
     guardrail_action: "GuardrailAction" = Relationship(back_populates="guardrails")
 
     history: list["MetricHistory"] = Relationship(back_populates="metric")
