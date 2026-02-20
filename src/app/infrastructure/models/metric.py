@@ -1,11 +1,12 @@
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
 from app.core.schemas.experiment import MetricRole
 from app.core.schemas.metric import AggregationUnit, GuardrailAction, MetricType
+from app.infrastructure.models.event import EventMetricLink
 
 if TYPE_CHECKING:
     from app.infrastructure.models import User
@@ -23,7 +24,6 @@ class MetricCatalog(SQLModel, table=True):
     type: MetricType = Field(nullable=False)
     aggregationUnit: AggregationUnit = Field(nullable=False, default=AggregationUnit.EVENT)
     description: str | None = Field(nullable=True, max_length=500)
-    calculationConfig: dict | None = Field(sa_column=Column(JSON, nullable=True))
 
     createdBy: uuid.UUID | None = Field(foreign_key="users.id", nullable=True)
     createdAt: datetime = Field(default_factory=datetime.now)
@@ -31,7 +31,10 @@ class MetricCatalog(SQLModel, table=True):
     creator: "User" = Relationship(back_populates="created_catalog_metrics")
 
     metrics: list["Metric"] = Relationship(back_populates="metric_catalog")
-    events: list["EventCatalog"] = Relationship(back_populates="metric")
+    events: list["EventCatalog"] = Relationship(
+        back_populates="metrics",
+        link_model=EventMetricLink
+    )
 
 
 class Metric(SQLModel, table=True):

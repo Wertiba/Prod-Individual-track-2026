@@ -9,7 +9,6 @@ from app.core.schemas.base import DatetimeResponse, PyModel
 
 class EventCreateBody(PyModel):
     code: Annotated[str, Field(max_length=100)]
-    metricCatalog_code: Annotated[str, Field(max_length=100)]
     name: Annotated[str, Field(max_length=255)]
     description: Annotated[str | None, Field(max_length=500)] = None
     requiredParams: dict | None = None

@@ -33,7 +33,6 @@ class MetricCreateBody(PyModel):
     type: MetricType
     aggregationUnit: AggregationUnit | None = AggregationUnit.EVENT
     description: Annotated[str | None, Field(max_length=500)] = None
-    calculationConfig: dict | None = None
 
 
 class MetricData(MetricCreateBody):
