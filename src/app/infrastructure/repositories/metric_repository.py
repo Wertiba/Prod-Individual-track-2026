@@ -1,12 +1,14 @@
 from uuid import UUID
 
-from sqlalchemy.exc import SQLAlchemyError
+from asyncpg import ForeignKeyViolationError, UniqueViolationError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import and_, select
 
-from app.core.exceptions.base import RepositoryError
+from app.core.exceptions.base import DuplicateError, RelationNotFoundError, RepositoryError
 from app.core.schemas.experiment import MetricRole
 from app.infrastructure.models import Metric, MetricCatalog
+from app.infrastructure.models.event import EventMetricLink
 from app.infrastructure.repositories import BaseRepository
 
 
@@ -35,3 +37,22 @@ class MetricRepository(BaseRepository[MetricCatalog]):
         ))
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def assign(self, data: EventMetricLink) -> EventMetricLink:
+        try:
+            self.session.add(data)
+            await self.session.flush()
+            await self.session.refresh(data)
+            return data
+
+        except IntegrityError as e:
+            orig = e.orig
+            pgcode = getattr(orig, 'pgcode', None)
+
+            if pgcode == ForeignKeyViolationError.sqlstate:
+                raise RelationNotFoundError("Referenced entity does not exist") from e
+            elif pgcode == UniqueViolationError.sqlstate:
+                raise DuplicateError("Unique field already exists") from e
+            raise
+        except SQLAlchemyError as e:
+            raise RepositoryError("Database error") from e

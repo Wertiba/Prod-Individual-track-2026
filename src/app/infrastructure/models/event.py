@@ -12,12 +12,9 @@ if TYPE_CHECKING:
 class EventMetricLink(SQLModel, table=True):
     __tablename__ = "event_metric_links"
 
-    event_catalog_code: str = Field(
-        foreign_key="event_catalog.code", primary_key=True
-    )
-    metric_catalog_code: str = Field(
-        foreign_key="metric_catalog.code", primary_key=True
-    )
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    eventCatalog_code: str = Field(foreign_key="event_catalog.code", nullable=False)
+    metricCatalog_code: str = Field(foreign_key="metric_catalog.code", nullable=False)
 
     role: str | None = Field(nullable=True)
     value_field: str | None = Field(nullable=True)

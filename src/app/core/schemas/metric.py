@@ -44,3 +44,23 @@ class MetricData(MetricCreateBody):
 
 class MetricReadResponse(MetricData, DatetimeResponse):
     pass
+
+
+class MetricAssignData(PyModel):
+    eventCatalog_code: Annotated[str, Field(max_length=100)]
+    role: str | None = None
+    value_field: str | None = None
+    description: Annotated[str | None, Field(max_length=500)] = None
+
+
+class MetricAssignBody(PyModel):
+    metricCatalog_code: Annotated[str, Field(max_length=100)]
+    items: list[MetricAssignData]
+
+
+class MetricAssignDataOut(MetricAssignData):
+    id: UUID
+
+
+class MetricAssignResponse(PyModel):
+    items: list[MetricAssignDataOut]
