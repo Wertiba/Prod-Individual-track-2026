@@ -1,6 +1,6 @@
 from pydantic import ValidationError
 
-from app.core.exceptions.base import DuplicateError
+from app.core.exceptions.base import DuplicateError, RelationNotFoundError
 from app.core.exceptions.event_exs import EventAlreadyExistsError, EventNotFoundError
 from app.core.schemas.event import (
     EventBatchBody,
@@ -53,7 +53,7 @@ class EventService:
 
             return EventReadResponse(**event_exists.model_dump())
 
-    async def send_batch(self, batch: EventBatchBody) -> EventBatchResponse:
+    async def process_batch(self, batch: EventBatchBody) -> EventBatchResponse:
         exceptions: list[EventErrorDetail] = []
         duplicates = 0
         accepted = 0
@@ -72,15 +72,28 @@ class EventService:
 
                 try:
                     async with self.uow.session.begin_nested():
-                        await self.uow.event_repo.assign_event(Event(**item.model_dump()))
+                        event = await self.uow.event_repo.assign_event(Event(**item.model_dump()))
                     accepted += 1
                 except DuplicateError:
                     duplicates += 1
+                    continue
+                except RelationNotFoundError as ex:
+                    exceptions.append(EventErrorDetail(
+                        eventKey=item.eventKey,
+                        reason=str(ex),
+                    ))
+                    continue
                 except Exception as ex:
                     exceptions.append(EventErrorDetail(
                         eventKey=item.eventKey,
                         reason=str(ex),
                     ))
+                    continue
+
+                # guardrails = self.uow.metric_repo.get_guardrails(
+                #     event.decision.variant.experiment.id,
+                #     event.event_catalog.metric.code,
+                # )
 
         return EventBatchResponse(
             accepted=accepted,

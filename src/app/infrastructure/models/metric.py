@@ -31,7 +31,7 @@ class MetricCatalog(SQLModel, table=True):
     creator: "User" = Relationship(back_populates="created_catalog_metrics")
 
     metrics: list["Metric"] = Relationship(back_populates="metric_catalog")
-    events: list["EventCatalog"] = Relationship(back_populates="metrics")
+    events: list["EventCatalog"] = Relationship(back_populates="metric")
 
 
 class Metric(SQLModel, table=True):

@@ -27,7 +27,7 @@ class EventCatalog(SQLModel, table=True):
     createdAt: datetime = Field(default_factory=datetime.now)
 
     creator: "User" = Relationship(back_populates="created_catalog_events")
-    metrics: list["MetricCatalog"] = Relationship(back_populates="events")
+    metric: "MetricCatalog" = Relationship(back_populates="events")
 
     events: list["Event"] = Relationship(back_populates="event_catalog")
 

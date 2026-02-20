@@ -1,9 +1,9 @@
-from sqlalchemy import and_
+from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import and_, select
 
-from app.core.exceptions.base import DuplicateError, RepositoryError
+from app.core.exceptions.base import DuplicateError, RelationNotFoundError, RepositoryError
 from app.infrastructure.models import Event, EventCatalog
 from app.infrastructure.repositories import BaseRepository
 
@@ -27,6 +27,13 @@ class EventRepository(BaseRepository[EventCatalog]):
             await self.session.refresh(event)
             return event
         except IntegrityError as e:
-            raise DuplicateError("Unique field already exists") from e
+            orig = e.orig
+            pgcode = getattr(orig, 'pgcode', None)
+
+            if pgcode == ForeignKeyViolationError.sqlstate:
+                raise RelationNotFoundError("Referenced entity does not exist") from e
+            elif pgcode == UniqueViolationError.sqlstate:
+                raise DuplicateError("Unique field already exists") from e
+            raise
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e

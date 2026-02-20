@@ -7,5 +7,5 @@ router = APIRouter(prefix="/events", tags=["Events"])
 
 
 @router.post("", response_model=EventBatchResponse, status_code=status.HTTP_207_MULTI_STATUS)
-async def send_batch(data: EventBatchBody, event_service: EventServiceDep) -> EventBatchResponse:
-    return await event_service.send_batch(data)
+async def process_batch(data: EventBatchBody, event_service: EventServiceDep) -> EventBatchResponse:
+    return await event_service.process_batch(data)

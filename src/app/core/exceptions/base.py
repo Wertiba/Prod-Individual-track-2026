@@ -14,3 +14,7 @@ class DuplicateError(RepositoryError):
     """Violation of uniqueness"""
     pass
 
+
+class RelationNotFoundError(RepositoryError):
+    """Violation of relation"""
+    pass

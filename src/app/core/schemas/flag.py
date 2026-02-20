@@ -22,12 +22,10 @@ class FlagCreateBody(PyModel):
 
 class FlagReadResponse(FlagCreateBody, DatetimeResponse):
     id: UUID
-    enabled: bool
     createdAt: datetime
     updatedAt: datetime
 
 
 class FlagUpdateBody(PyModel):
     default: Annotated[str, Field(max_length=255)]
-    enabled: bool | None = None
     updatedAt: datetime | None = None

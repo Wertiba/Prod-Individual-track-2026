@@ -18,7 +18,6 @@ class Flag(SQLModel, table=True):
     code: str = Field(unique=True, nullable=False, index=True, max_length=100)
     default: str = Field(nullable=False)
     type: FlagType = Field(nullable=False)
-    enabled: bool = Field(default=True)
 
     createdAt: datetime = Field(default_factory=datetime.now)
     updatedAt: datetime = Field(

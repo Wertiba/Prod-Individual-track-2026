@@ -1,10 +1,9 @@
 from uuid import UUID
 
-from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlmodel import select, update
+from sqlmodel import and_, select, update
 
 from app.core.exceptions.base import RepositoryError
 from app.core.schemas.experiment import ExperimentStatus
