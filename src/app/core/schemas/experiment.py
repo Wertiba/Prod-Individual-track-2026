@@ -1,9 +1,9 @@
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Annotated, Self
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
 from app.core.schemas.base import DatetimeResponse, PyModel
 
@@ -40,18 +40,9 @@ class VariantData(VariantCreateBody):
 class MetricAssign(PyModel):
     metricCatalog_code: Annotated[str, Field(max_length=100)]
     role: MetricRole
-    time_from: datetime | None = None
-    time_to: datetime | None = None
     window: Annotated[int | None, Field(ge=0)] = None
     threshold: Annotated[int | None, Field(ge=0)] = None
     action_code: Annotated[str | None, Field(max_length=100)] = None
-
-    @field_validator("time_from", "time_to", mode="after")
-    @classmethod
-    def strip_timezone(cls, v: datetime | None) -> datetime | None:
-        if v is not None and v.tzinfo is not None:
-            return v.astimezone(UTC).replace(tzinfo=None)
-        return v
 
 
 class MetricData(MetricAssign):

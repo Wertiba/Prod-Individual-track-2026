@@ -42,11 +42,6 @@ class Metric(SQLModel, table=True):
     metricCatalog_code: str = Field(foreign_key="metric_catalog.code", nullable=False)
 
     role: MetricRole = Field(nullable=False, default=MetricRole.ADDITIONAL, max_length=255)
-    time_from: datetime | None = Field(
-        nullable=True,
-        default_factory=lambda: datetime.now(tz=UTC) - timedelta(days=10)
-    )
-    time_to: datetime | None = Field(nullable=True, default_factory=datetime.now)
 
     window: int | None = Field(nullable=True, default=864000, ge=0)
     threshold: int | None = Field(nullable=True, ge=0)
@@ -55,11 +50,11 @@ class Metric(SQLModel, table=True):
     experiment: "Experiment" = Relationship(back_populates="metrics")
     metric_catalog: "MetricCatalog" = Relationship(back_populates="metrics")
 
-    history: list["MetricHistory"] = Relationship(back_populates="metric")
+    history: list["GuardrailHistory"] = Relationship(back_populates="metric")
 
 
-class MetricHistory(SQLModel, table=True):
-    __tablename__ = "metric_history"
+class GuardrailHistory(SQLModel, table=True):
+    __tablename__ = "guardrail_history"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     metric_id: uuid.UUID = Field(foreign_key="metrics.id", nullable=False)
