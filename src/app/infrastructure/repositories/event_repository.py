@@ -1,10 +1,13 @@
+from datetime import datetime, timezone
+from uuid import UUID
+
 from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import and_, select
 
 from app.core.exceptions.base import DuplicateError, RelationNotFoundError, RepositoryError
-from app.infrastructure.models import Event, EventCatalog
+from app.infrastructure.models import Decision, Event, EventCatalog, Variant
 from app.infrastructure.repositories import BaseRepository
 
 
@@ -37,3 +40,42 @@ class EventRepository(BaseRepository[EventCatalog]):
             raise
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
+
+    async def get_by_experiment_and_event_codes(
+            self, experiment_id: UUID, event_codes: list[str], time_from: datetime
+    ) -> list[Event]:
+        if time_from.tzinfo is not None:
+            time_from = time_from.astimezone(timezone.utc).replace(tzinfo=None)
+
+        stmt = (
+            select(Event)
+            .join(Event.decision)
+            .join(Decision.variant)
+            .where(
+                Variant.experiment_id == experiment_id,
+                Event.eventCatalog_code.in_(event_codes),
+                Event.createdAt >= time_from,
+            )
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_by_variant_and_event_codes(
+            self,
+            variant_id: UUID,
+            event_codes: list[str],
+            time_from: datetime,
+            time_to: datetime,
+    ) -> list[Event]:
+        stmt = (
+            select(Event)
+            .join(Event.decision)
+            .where(and_(
+                Decision.variant_id == variant_id,
+                Event.eventCatalog_code.in_(event_codes),
+                Event.createdAt >= time_from,
+                Event.createdAt < time_to,
+            ))
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())

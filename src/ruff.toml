@@ -47,7 +47,8 @@ ignore = [
     "FURB167",
     "UP017",
     "RUF012",
-    "UP042"     # enum classes
+    "UP042",     # enum classes
+    "E741", # one letter variables
 ]
 # Исключение директорий и файлов из линтинга
 exclude = [

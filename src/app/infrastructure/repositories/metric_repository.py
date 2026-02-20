@@ -3,11 +3,12 @@ from uuid import UUID
 from asyncpg import ForeignKeyViolationError, UniqueViolationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlmodel import and_, select
 
 from app.core.exceptions.base import DuplicateError, RelationNotFoundError, RepositoryError
 from app.core.schemas.experiment import MetricRole
-from app.infrastructure.models import Metric, MetricCatalog
+from app.infrastructure.models import GuardrailHistory, Metric, MetricCatalog
 from app.infrastructure.models.event import EventMetricLink
 from app.infrastructure.repositories import BaseRepository
 
@@ -29,12 +30,17 @@ class MetricRepository(BaseRepository[MetricCatalog]):
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_guardrails(self, exp_id: UUID, code: str) -> list[Metric]:
-        stmt = select(Metric).where(and_(
-            Metric.exp_id == exp_id,    # noqa
-            Metric.role == MetricRole.GUARDRAIL,    # noqa
-            Metric.metricCatalog_code == code    # noqa
-        ))
+    async def get_guardrails(self, exp_id: UUID) -> list[Metric]:
+        stmt = (
+            select(Metric)
+            .where(and_(
+                Metric.experiment_id == exp_id,
+                Metric.role == MetricRole.GUARDRAIL,
+                Metric.threshold.isnot(None),
+                Metric.action_code.isnot(None),
+            ))
+            .options(selectinload(Metric.metric_catalog))
+        )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
@@ -54,5 +60,21 @@ class MetricRepository(BaseRepository[MetricCatalog]):
             elif pgcode == UniqueViolationError.sqlstate:
                 raise DuplicateError("Unique field already exists") from e
             raise
+        except SQLAlchemyError as e:
+            raise RepositoryError("Database error") from e
+
+    async def get_event_metric_link(self, metric_catalog_code: str) -> list[EventMetricLink]:
+        stmt = select(EventMetricLink).where(
+            EventMetricLink.metricCatalog_code == metric_catalog_code
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def add_history(self, guardrail: GuardrailHistory) -> GuardrailHistory:
+        try:
+            self.session.add(guardrail)
+            await self.session.flush()
+            await self.session.refresh(guardrail)
+            return guardrail
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e

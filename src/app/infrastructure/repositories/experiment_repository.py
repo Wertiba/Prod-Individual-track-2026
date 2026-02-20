@@ -52,6 +52,7 @@ class ExperimentRepository(BaseRepository[Experiment]):
                 .options(selectinload(Experiment.creator))  # noqa
                 .options(selectinload(Experiment.reviews))  # noqa
                 .options(selectinload(Experiment.metrics))  # noqa
+                .options(selectinload(Experiment.metrics).selectinload(Metric.metric_catalog))  # noqa
                 .where(Experiment.code == code)  # noqa
             )
             stmt = stmt.where(Experiment.version == version) if version is not None\

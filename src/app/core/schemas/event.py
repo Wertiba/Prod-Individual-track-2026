@@ -29,7 +29,7 @@ class EventReadResponse(EventData, DatetimeResponse):
 
 class SendEventData(PyModel):
     eventKey: str
-    decision_id: UUID
+    decision_id: UUID | None = None
     eventCatalog_code: Annotated[str, Field(max_length=100)]
     data: dict | None = None
 

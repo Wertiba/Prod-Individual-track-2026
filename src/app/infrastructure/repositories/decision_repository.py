@@ -1,10 +1,12 @@
 from uuid import UUID
 
 from sqlalchemy import and_
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
+from app.core.exceptions.base import RepositoryError
 from app.core.schemas.experiment import ExperimentStatus
 from app.infrastructure.models import Decision, Experiment, Variant
 from app.infrastructure.repositories import BaseRepository
@@ -31,3 +33,20 @@ class DecisionRepository(BaseRepository[Decision]):
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def get_by_id_with_variant(self, id_: UUID) -> Decision | None:
+        try:
+            stmt = select(Decision).where(Decision.id == id_).options(selectinload(Decision.variant)) # noqa
+            res = await self.session.execute(stmt)
+            return res.scalar_one_or_none()
+        except SQLAlchemyError as e:
+            raise RepositoryError("Database error") from e
+
+    async def get_by_experiment(self, experiment_id: UUID) -> list[Decision]:
+        stmt = (
+            select(Decision)
+            .join(Decision.variant)
+            .where(Variant.experiment_id == experiment_id)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
