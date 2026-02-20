@@ -18,6 +18,7 @@ class ExperimentStatus(str, Enum):
     ARCHIVED = "ARCHIVED"
     REJECTED = "REJECTED"
     REWORK = "REWORK"
+    ROLLBACK = "ROLLBACK"
 
 
 class MetricRole(str, Enum):

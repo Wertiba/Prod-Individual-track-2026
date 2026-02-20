@@ -251,7 +251,7 @@ class ExperimentService:
         async with self.uow:
             experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code))
 
-            if experiment.status in {ExperimentStatus.PAUSED, ExperimentStatus.APPROVED}:
+            if experiment.status in {ExperimentStatus.PAUSED, ExperimentStatus.APPROVED, ExperimentStatus.ROLLBACK}:
                 if experiment.status == ExperimentStatus.APPROVED:
                     active = await self.uow.experiment_repo.check_flag(experiment.flag_code)
                     if active:
@@ -261,7 +261,11 @@ class ExperimentService:
 
     async def set_status_paused(self, code: str) -> ExperimentReadResponse:
         async with self.uow:
-            return await self.set_status(code, ExperimentStatus.PAUSED, {ExperimentStatus.RUNNING})
+            return await self.set_status(
+                code,
+                ExperimentStatus.PAUSED,
+                {ExperimentStatus.RUNNING, ExperimentStatus.ROLLBACK}
+            )
 
     async def get_decisions(self, data: DecisionBody) -> DecisionResponse:
         decisions: list[DecisionData] = []
@@ -274,14 +278,28 @@ class ExperimentService:
                     flag = await self.uow.flag_repo.get_by_code(code)
                     decisions.append(DecisionData(user_id=user_id, flag_code=code, value=flag.default))
                     continue
-                decisions.append(DecisionData(
-                    user_id=user_id,
-                    flag_code=code,
-                    experiment_code=result.variant.experiment.code,
-                    variant=VariantData(**result.variant.model_dump()),
-                    decision_id=result.id,
-                    value=result.variant.value
-                ))
+                elif result.variant.experiment.status == ExperimentStatus.ROLLBACK:
+                    control_variant = next(
+                        (v for v in result.variant.experiment.variants if v.isControl),
+                        None
+                    )
+
+                    decisions.append(DecisionData(
+                        user_id=user_id,
+                        flag_code=code,
+                        experiment_code=result.variant.experiment.code,
+                        variant=VariantData(**control_variant.model_dump()),
+                        value=control_variant.value
+                    ))
+                else:
+                    decisions.append(DecisionData(
+                        user_id=user_id,
+                        flag_code=code,
+                        experiment_code=result.variant.experiment.code,
+                        variant=VariantData(**result.variant.model_dump()),
+                        decision_id=result.id,
+                        value=result.variant.value
+                    ))
         return DecisionResponse(items=decisions)
 
     async def set_status_completed(self, code: str) -> ExperimentReadResponse:
@@ -289,7 +307,7 @@ class ExperimentService:
             return await self.set_status(
                 code,
                 ExperimentStatus.COMPLETED,
-                {ExperimentStatus.RUNNING, ExperimentStatus.PAUSED}
+                {ExperimentStatus.RUNNING, ExperimentStatus.PAUSED, ExperimentStatus.ROLLBACK}
             )
 
     async def set_status_archived(self, code: str) -> ExperimentReadResponse:

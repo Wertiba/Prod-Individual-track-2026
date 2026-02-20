@@ -23,12 +23,12 @@ class DecisionRepository(BaseRepository[Decision]):
             .join(Variant.experiment)   # noqa
             .where(and_(
                 Experiment.flag_code == flag_code,  # noqa
-                Experiment.status.in_([ExperimentStatus.RUNNING]),  # noqa
+                Experiment.status.in_([ExperimentStatus.RUNNING, ExperimentStatus.ROLLBACK]),  # noqa
                 Experiment.isCurrent == True,   # noqa
                 Decision.user_id == user_id,    # noqa
             ))
             .options(
-                selectinload(Decision.variant).selectinload(Variant.experiment) # noqa
+                selectinload(Decision.variant).selectinload(Variant.experiment).selectinload(Experiment.variants) # noqa
             )
         )
         result = await self.session.execute(stmt)
@@ -36,7 +36,8 @@ class DecisionRepository(BaseRepository[Decision]):
 
     async def get_by_id_with_variant(self, id_: UUID) -> Decision | None:
         try:
-            stmt = select(Decision).where(Decision.id == id_).options(selectinload(Decision.variant)) # noqa
+            stmt = select(Decision).where(Decision.id == id_).options(
+                selectinload(Decision.variant).selectinload(Variant.experiment)) # noqa
             res = await self.session.execute(stmt)
             return res.scalar_one_or_none()
         except SQLAlchemyError as e:

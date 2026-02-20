@@ -106,10 +106,12 @@ class EventService:
                 await self._trigger_guardrail(guardrail, value, experiment_id)
 
     async def _trigger_guardrail(self, guardrail: Metric, actual_value: float, experiment_id: UUID) -> None:
+        experiment = await self.uow.experiment_repo.get_by_id_with_variants(experiment_id)
+
         if guardrail.action_code == GuardrailAction.PAUSE:
-            await self._pause_experiment(experiment_id)
+            experiment.status = ExperimentStatus.ROLLBACK
         elif guardrail.action_code == GuardrailAction.ROLLBACK:
-            await self._rollback_experiment(experiment_id)
+            experiment.status = ExperimentStatus.ROLLBACK
 
         await self.uow.metric_repo.add_history(GuardrailHistory(
             metric_id=guardrail.id,
@@ -122,31 +124,6 @@ class EventService:
                 "triggered_at": datetime.now(tz=UTC).isoformat(),
             }
         ))
-
-    async def _pause_experiment(self, experiment_id: UUID) -> None:
-        experiment = await self.uow.experiment_repo.get_by_id(experiment_id)
-        if not experiment:
-            return
-        if experiment.status != ExperimentStatus.RUNNING:
-            return
-        experiment.status = ExperimentStatus.PAUSED
-
-    async def _rollback_experiment(self, experiment_id: UUID) -> None:
-        experiment = await self.uow.experiment_repo.get_by_id_with_variants(experiment_id)
-        if not experiment:
-            return
-        if experiment.status != ExperimentStatus.RUNNING:
-            return
-
-        control_variant = next(
-            (v for v in experiment.variants if v.isControl),
-            None
-        )
-
-        decisions = await self.uow.decision_repo.get_by_experiment(experiment_id)
-        for decision in decisions:
-            if decision.variant_id != control_variant.id:
-                decision.variant_id = control_variant.id
 
     async def create(self, user_data: TokenData, event_data: EventCreateBody) -> EventReadResponse:
         async with self.uow:
@@ -176,6 +153,7 @@ class EventService:
         exceptions: list[EventErrorDetail] = []
         duplicates = 0
         default = 0
+        rollback = 0
         accepted = 0
         affected_experiment_ids: set[UUID] = set()
 
@@ -194,10 +172,16 @@ class EventService:
                 try:
                     decision = await self.uow.decision_repo.get_by_id_with_variant(item.decision_id)
                     if decision:
-                        affected_experiment_ids.add(decision.variant.experiment_id)
-                        async with self.uow.session.begin_nested():
-                            await self.uow.event_repo.assign_event(Event(**item.model_dump()))
-                            accepted += 1
+                        if decision.variant.experiment.status == ExperimentStatus.ROLLBACK:
+                            rollback += 1
+                            continue
+                        elif decision.variant.experiment.status == ExperimentStatus.RUNNING:
+                            affected_experiment_ids.add(decision.variant.experiment_id)
+                            async with self.uow.session.begin_nested():
+                                await self.uow.event_repo.assign_event(Event(**item.model_dump()))
+                                accepted += 1
+                        else:
+                            default += 1
                     else:
                         default += 1
 
@@ -239,7 +223,8 @@ class EventService:
             if not experiment:
                 raise ExperimentNotFoundError
             if experiment.status not in {ExperimentStatus.RUNNING, ExperimentStatus.COMPLETED,
-                                         ExperimentStatus.PAUSED, ExperimentStatus.ARCHIVED}:
+                                         ExperimentStatus.PAUSED, ExperimentStatus.ARCHIVED,
+                                         ExperimentStatus.ROLLBACK}:
                 raise ExperimentInvalidStatusError
 
             variants_report = []
