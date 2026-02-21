@@ -1,5 +1,6 @@
 import random
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from uuid import UUID
 
 from app.core.config import settings
@@ -19,10 +20,12 @@ from app.core.schemas.experiment import (
     ExperimentCreateBody,
     ExperimentHistoryResponse,
     ExperimentReadResponse,
+    ExperimentResult,
     ExperimentStatus,
     ExperimentUpdate,
     ExperimentUpdateBody,
     MetricData,
+    MetricRole,
     VariantData,
 )
 from app.core.schemas.review import ReviewResult
@@ -30,11 +33,12 @@ from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
 from app.infrastructure.models import Decision, Experiment, Metric, Variant
 from app.infrastructure.unit_of_work import UnitOfWork
+from app.services.vatiant_service import VariantService
 
 
-class ExperimentService:
+class ExperimentService(VariantService):
     def __init__(self, uow: UnitOfWork):
-        self.uow = uow
+        super().__init__(uow)
 
     @staticmethod
     def _convert_to_response(experiment: Experiment) -> ExperimentReadResponse:
@@ -122,6 +126,27 @@ class ExperimentService:
                                       status=status,
                                       variants=[VariantData(**exp.model_dump()) for exp in experiment.variants],
                                       metrics=[MetricData(**exp.model_dump()) for exp in experiment.metrics])
+
+    async def _determine_winner(self, experiment: Experiment) -> Variant | None:
+        scores = await self._get_variant_scores(
+            experiment,
+            time_from=experiment.createdAt,
+            time_to=datetime.now(tz=UTC),
+            role_filter=MetricRole.MAIN,
+        )
+        if not scores:
+            return None
+
+        control = next((v for v in experiment.variants if v.isControl), None)
+        if control and scores.get(control.id, 0) > 0:
+            control_score = scores[control.id]
+            scores = {
+                vid: (score - control_score) / control_score
+                for vid, score in scores.items()
+            }
+
+        winner_id = max(scores, key=lambda vid: scores[vid])
+        return next((v for v in experiment.variants if v.id == winner_id), None)
 
     async def create(self, user_data: TokenData, experiment_data: ExperimentCreateBody,
                      status: ExperimentStatus | None = None) -> ExperimentReadResponse:
@@ -284,7 +309,6 @@ class ExperimentService:
                 if not result:
                     flag = await self.uow.flag_repo.get_by_code(code)
                     decisions.append(DecisionData(user_id=user_id, flag_code=code, value=flag.default))
-                    continue
                 elif result.variant.experiment.status == ExperimentStatus.ROLLBACK:
                     control_variant = next(
                         (v for v in result.variant.experiment.variants if v.isControl),
@@ -298,6 +322,19 @@ class ExperimentService:
                         variant=VariantData(**control_variant.model_dump()),
                         value=control_variant.value
                     ))
+                elif result.variant.experiment.status == ExperimentStatus.COMPLETED:
+                    if result.variant.experiment.resultVariant_id:
+                        variant = await self.uow.experiment_repo.get_by_id(result.variant.experiment.resultVariant_id)
+                        decisions.append(DecisionData(
+                            user_id=user_id,
+                            flag_code=code,
+                            experiment_code=result.variant.experiment.code,
+                            variant=VariantData(**variant.model_dump()),
+                            value=control_variant.value
+                        ))
+                    else:
+                        flag = await self.uow.flag_repo.get_by_code(code)
+                        decisions.append(DecisionData(user_id=user_id, flag_code=code, value=flag.default))
                 else:
                     decisions.append(DecisionData(
                         user_id=user_id,
@@ -309,13 +346,27 @@ class ExperimentService:
                     ))
         return DecisionResponse(items=decisions)
 
-    async def set_status_completed(self, code: str) -> ExperimentReadResponse:
+    async def set_status_completed(self, code: str, result: ExperimentResult, comment: str) -> ExperimentReadResponse:
         async with self.uow:
-            return await self.set_status(
-                code,
-                ExperimentStatus.COMPLETED,
-                {ExperimentStatus.RUNNING, ExperimentStatus.PAUSED, ExperimentStatus.ROLLBACK}
-            )
+            experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code))
+            match result:
+                case ExperimentResult.ROLLBACK:
+                    control_variant = next(
+                        (v for v in experiment.variants if v.isControl),
+                        None
+                    )
+                    experiment.resultVariant_id = control_variant.id
+
+                case ExperimentResult.ROLLOUT:
+                    winner = await self._determine_winner(experiment)
+                    experiment.resultVariant_id = winner.id if winner else None
+
+                case _:
+                    experiment.resultVariant_id = None
+
+            experiment.comment = comment
+            experiment.status = ExperimentStatus.COMPLETED
+            return self._convert_to_response(experiment)
 
     async def set_status_archived(self, code: str) -> ExperimentReadResponse:
         async with self.uow:

@@ -27,6 +27,12 @@ class MetricRole(str, Enum):
     GUARDRAIL = "GUARDRAIL"
 
 
+class ExperimentResult(str, Enum):
+    ROLLOUT = "ROLLOUT"
+    ROLLBACK = "ROLLBACK"
+    DEFAULT = "DEFAULT"
+
+
 class VariantCreateBody(PyModel):
     name: Annotated[str, Field(max_length=255)]
     value: Annotated[str, Field(max_length=255)]
@@ -35,6 +41,7 @@ class VariantCreateBody(PyModel):
 
 
 class VariantData(VariantCreateBody):
+    id: UUID
     experiment_id: UUID
 
 
@@ -105,6 +112,11 @@ class ExperimentSetStatusBody(PyModel):
     code: Annotated[str, Field(max_length=100)]
 
 
+class ExperimentSetCompletedSatusBody(ExperimentSetStatusBody):
+    result: ExperimentResult
+    comment: Annotated[str | None, Field(max_length=500)] = None
+
+
 class ExperimentData(ExperimentCreateData, ExperimentSetStatusBody):
     id: UUID
     status: ExperimentStatus
@@ -114,6 +126,8 @@ class ExperimentData(ExperimentCreateData, ExperimentSetStatusBody):
     createdAt: datetime
     variants: list[VariantData]
     metrics: list[MetricData]
+    resultVariant_id: UUID | None = None
+    comment: str | None = None
 
 
 class ExperimentReadResponse(ExperimentData, DatetimeResponse):

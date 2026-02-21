@@ -27,6 +27,8 @@ class Experiment(SQLModel, table=True):
     target: str | None = Field(nullable=True, max_length=500)
     isCurrent: bool = Field(nullable=False, default=True)
     description: str = Field(nullable=False, max_length=255)
+    resultVariant_id: uuid.UUID | None = Field(nullable=True, default=None)
+    comment: str | None = Field(nullable=True, max_length=255, default=None)
 
     createdBy: uuid.UUID = Field(foreign_key="users.id", nullable=False)
     createdAt: datetime = Field(default_factory=datetime.now)

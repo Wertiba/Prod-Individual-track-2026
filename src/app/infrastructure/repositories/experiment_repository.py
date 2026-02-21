@@ -108,7 +108,7 @@ class ExperimentRepository(BaseRepository[Experiment]):
                 .options(selectinload(Experiment.metrics))  # noqa
                 .where(and_(
                     Experiment.flag_code == flag_code,  # noqa
-                    Experiment.status.in_([ExperimentStatus.RUNNING, ExperimentStatus.PAUSED])))  # noqa
+                    Experiment.status.in_([ExperimentStatus.RUNNING, ExperimentStatus.PAUSED, ExperimentStatus.ROLLBACK])))  # noqa
             )
             return result.scalar_one_or_none()
         except SQLAlchemyError as e:

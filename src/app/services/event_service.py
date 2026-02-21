@@ -15,18 +15,18 @@ from app.core.schemas.event import (
     SendEventData,
 )
 from app.core.schemas.experiment import ExperimentStatus
-from app.core.schemas.metric import AggregationUnit, GuardrailAction, MetricType
+from app.core.schemas.metric import GuardrailAction
 from app.core.schemas.reports import ExperimentReportResponse, MetricReportItem, VariantReportItem
 from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
-from app.infrastructure.models import Event, EventCatalog, GuardrailHistory, Metric, MetricCatalog
-from app.infrastructure.models.event import EventMetricLink
+from app.infrastructure.models import Event, EventCatalog, GuardrailHistory, Metric
 from app.infrastructure.unit_of_work import UnitOfWork
+from app.services.vatiant_service import VariantService
 
 
-class EventService:
+class EventService(VariantService):
     def __init__(self, uow: UnitOfWork):
-        self.uow = uow
+        super().__init__(uow)
 
     @staticmethod
     def _format_validation_error(e: ValidationError) -> str:
@@ -36,50 +36,6 @@ class EventService:
             msg = err["msg"]
             errors.append(f"{field}: {msg}" if field else msg)
         return "; ".join(errors)
-
-    @staticmethod
-    def _calculate(catalog: MetricCatalog, links: list[EventMetricLink], events: list[Event]) -> float:
-        if not events:
-            return 0.0
-
-        match catalog.type:
-            case MetricType.COUNT:
-                if catalog.aggregationUnit == AggregationUnit.USER:
-                    return float(len({e.decision_id for e in events}))
-                return float(len(events))
-
-            case MetricType.SUM:
-                link = links[0]
-                field = link.value_field or "value"
-                return float(sum(e.data.get(field, 0) for e in events if e.data))
-
-            case MetricType.AVG:
-                link = links[0]
-                field = link.value_field or "value"
-                values = [e.data.get(field, 0) for e in events if e.data]
-                return sum(values) / len(values) if values else 0.0
-
-            case MetricType.MIN:
-                link = links[0]
-                field = link.value_field or "value"
-                values = [e.data.get(field) for e in events if e.data and e.data.get(field) is not None]
-                return float(min(values)) if values else 0.0
-
-            case MetricType.MAX:
-                link = links[0]
-                field = link.value_field or "value"
-                values = [e.data.get(field) for e in events if e.data and e.data.get(field) is not None]
-                return float(max(values)) if values else 0.0
-
-            case MetricType.RATIO:
-                numerator_codes = {l.eventCatalog_code for l in links if l.role == "numerator"}
-                denominator_codes = {l.eventCatalog_code for l in links if l.role == "denominator"}
-                n = sum(1 for e in events if e.eventCatalog_code in numerator_codes)
-                d = sum(1 for e in events if e.eventCatalog_code in denominator_codes)
-                return n / d if d else 0.0
-
-            case _:
-                return 0.0
 
     async def _check_guardrails(self, experiment_id: UUID) -> None:
         guardrails = await self.uow.metric_repo.get_guardrails(experiment_id)
@@ -109,7 +65,7 @@ class EventService:
         experiment = await self.uow.experiment_repo.get_by_id_with_variants(experiment_id)
 
         if guardrail.action_code == GuardrailAction.PAUSE:
-            experiment.status = ExperimentStatus.ROLLBACK
+            experiment.status = ExperimentStatus.PAUSED
         elif guardrail.action_code == GuardrailAction.ROLLBACK:
             experiment.status = ExperimentStatus.ROLLBACK
 
@@ -212,12 +168,7 @@ class EventService:
             errors=exceptions,
         )
 
-    async def get_report(
-            self,
-            experiment_code: str,
-            time_from: datetime,
-            time_to: datetime
-    ) -> ExperimentReportResponse:
+    async def get_report(self, experiment_code: str, time_from: datetime, time_to: datetime):
         async with self.uow:
             experiment = await self.uow.experiment_repo.get_by_code(experiment_code)
             if not experiment:
@@ -231,27 +182,16 @@ class EventService:
             for variant in experiment.variants:
                 metrics_report = []
                 for metric in experiment.metrics:
-                    links = await self.uow.metric_repo.get_event_metric_link(metric.metricCatalog_code)
-                    if not links:
-                        continue
-
-                    event_codes = [l.eventCatalog_code for l in links]
-                    events = await self.uow.event_repo.get_by_variant_and_event_codes(
-                        variant_id=variant.id,
-                        event_codes=event_codes,
-                        time_from=time_from,
-                        time_to=time_to,
+                    value, event_count = await self._get_metric_value(
+                        metric, variant.id, time_from, time_to
                     )
-
-                    value = self._calculate(metric.metric_catalog, links, events)
                     metrics_report.append(MetricReportItem(
                         metric_code=metric.metricCatalog_code,
                         metric_name=metric.metric_catalog.name,
                         role=metric.role,
                         value=value,
-                        event_count=len(events),
+                        event_count=event_count,
                     ))
-
                 variants_report.append(VariantReportItem(
                     variant_id=variant.id,
                     variant_name=variant.name,

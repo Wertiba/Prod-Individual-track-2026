@@ -10,6 +10,7 @@ from app.core.schemas.experiment import (
     ExperimentCreateBody,
     ExperimentHistoryResponse,
     ExperimentReadResponse,
+    ExperimentSetCompletedSatusBody,
     ExperimentSetStatusBody,
     ExperimentUpdateBody,
 )
@@ -80,8 +81,8 @@ async def to_paused(_: ExperimenterUserDep, experiment_service: ExperimentServic
 
 @router.post("/status/completed", response_model=ExperimentReadResponse, status_code=status.HTTP_202_ACCEPTED)
 async def to_completed(_: ExperimenterUserDep, experiment_service: ExperimentServiceDep,
-                    data: ExperimentSetStatusBody) -> ExperimentReadResponse | None:
-    return await experiment_service.set_status_completed(data.code)
+                    data: ExperimentSetCompletedSatusBody) -> ExperimentReadResponse | None:
+    return await experiment_service.set_status_completed(data.code, data.result, data.comment)
 
 
 @router.post("/status/archived", response_model=ExperimentReadResponse, status_code=status.HTTP_202_ACCEPTED)
