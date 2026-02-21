@@ -58,3 +58,7 @@ cache:
 
 restrictions:
   max_password_length: 8
+
+exp_index:
+  coefficient: 0.5
+  term: 10

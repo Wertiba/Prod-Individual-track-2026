@@ -2,6 +2,7 @@ import random
 from collections.abc import Awaitable, Callable
 from uuid import UUID
 
+from app.core.config import settings
 from app.core.exceptions.base import DuplicateError
 from app.core.exceptions.experiment_exs import (
     ExperimentAlreadyExistsError,
@@ -107,6 +108,12 @@ class ExperimentService:
                     isRequested=False,
                 )
                 decisions.append(decision)
+                user.exp_index *= settings.exp_index.coefficient
+
+        for user in await self.uow.user_repo.get_all():
+            if user not in participating_users:
+                user.exp_index += settings.exp_index.term
+
         return decisions
 
     async def _set_status(self, experiment: Experiment, status: ExperimentStatus) -> ExperimentReadResponse:
