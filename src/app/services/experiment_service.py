@@ -35,7 +35,7 @@ from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
 from app.infrastructure.models import Decision, Experiment, Metric, Variant
 from app.infrastructure.unit_of_work import UnitOfWork
-from app.services.vatiant_service import VariantService
+from app.services.variant_service import VariantService
 
 
 class ExperimentService(VariantService):

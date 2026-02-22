@@ -6,7 +6,7 @@ from .jwt_service import JWTService
 from .metric_service import MetricService
 from .review_service import ReviewService
 from .user_service import UserService
-from .vatiant_service import VariantService
+from .variant_service import VariantService
 
 __all__ = [
     "AuthService",
