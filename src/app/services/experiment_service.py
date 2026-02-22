@@ -18,6 +18,7 @@ from app.core.exceptions.user_exs import DeficiencyApproversError
 from app.core.schemas.decision import DecisionBody, DecisionData, DecisionResponse
 from app.core.schemas.experiment import (
     ExperimentCreateBody,
+    ExperimentGuardrailsResponse,
     ExperimentHistoryResponse,
     ExperimentReadResponse,
     ExperimentResult,
@@ -28,6 +29,7 @@ from app.core.schemas.experiment import (
     MetricRole,
     VariantData,
 )
+from app.core.schemas.metric import GuardrailData
 from app.core.schemas.review import ReviewResult
 from app.core.schemas.user import TokenData
 from app.core.utils.paginated import Page, PaginationParams
@@ -215,6 +217,21 @@ class ExperimentService(VariantService):
             if not experiments:
                 raise ExperimentNotFoundError
             return ExperimentHistoryResponse(versions=[self._convert_to_response(ex) for ex in experiments])
+
+    async def get_guardrails(self, code: str) -> ExperimentGuardrailsResponse:
+        async with self.uow:
+            experiment = await self._get_experiment_or_404(lambda: self.uow.experiment_repo.get_by_code(code, None))
+            if not experiment:
+                raise ExperimentNotFoundError
+
+            guardrails = await self.uow.metric_repo.get_guardrails_history(experiment.id)
+            if not guardrails:
+                raise ExperimentNotFoundError
+            return ExperimentGuardrailsResponse(
+                id=experiment.id,
+                code=experiment.code,
+                items=[GuardrailData(**g.model_dump()) for g in guardrails],
+            )
 
     async def update(self, code: str, user_data: TokenData, data: ExperimentUpdateBody) -> ExperimentReadResponse:
         async with self.uow:

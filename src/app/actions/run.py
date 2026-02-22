@@ -1,5 +1,7 @@
 import asyncio
 
+from app.actions.create_base_events import create_base_events
+from app.actions.create_base_links import create_base_links
 from app.actions.create_base_metrics import create_base_metrics
 from app.actions.create_roles import seed_roles
 from app.actions.first_admin import create_admin
@@ -11,6 +13,8 @@ async def run():
         await seed_roles(session)
         await create_admin(session)
         await create_base_metrics(session)
+        await create_base_events(session)
+        await create_base_links(session)
 
 
 if __name__ == '__main__':

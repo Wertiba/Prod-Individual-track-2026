@@ -8,6 +8,7 @@ from app.api.v1.dependencies import (
 )
 from app.core.schemas.experiment import (
     ExperimentCreateBody,
+    ExperimentGuardrailsResponse,
     ExperimentHistoryResponse,
     ExperimentReadResponse,
     ExperimentSetCompletedSatusBody,
@@ -41,6 +42,12 @@ async def get_current(_: AnyViewUserDep, code: str, experiment_service: Experime
 async def get_history(_: AnyViewUserDep, code: str,
                       experiment_service: ExperimentServiceDep) -> ExperimentHistoryResponse | None:
     return await experiment_service.get_history(code)
+
+
+@router.get("/guardrails/{code}", response_model=ExperimentGuardrailsResponse, status_code=status.HTTP_200_OK)
+async def get_guardrails(_: AnyViewUserDep, code: str,
+                      experiment_service: ExperimentServiceDep) -> ExperimentGuardrailsResponse | None:
+    return await experiment_service.get_guardrails(code)
 
 
 @router.put("/{code}", response_model=ExperimentReadResponse, status_code=status.HTTP_200_OK)

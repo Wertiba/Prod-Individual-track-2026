@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from app.core.schemas.base import DatetimeResponse, PyModel
+from app.core.schemas.metric import GuardrailData
 
 
 class ExperimentStatus(str, Enum):
@@ -136,3 +137,9 @@ class ExperimentReadResponse(ExperimentData, DatetimeResponse):
 
 class ExperimentHistoryResponse(DatetimeResponse):
     versions: list[ExperimentData]
+
+
+class ExperimentGuardrailsResponse(DatetimeResponse):
+    id: UUID
+    code: str
+    items: list[GuardrailData]

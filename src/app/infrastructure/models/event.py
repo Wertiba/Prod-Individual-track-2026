@@ -34,7 +34,7 @@ class EventCatalog(SQLModel, table=True):
     isSystem: bool = Field(nullable=False, default=False)
     inArchive: bool = Field(nullable=False, default=False)
 
-    createdBy: uuid.UUID = Field(foreign_key="users.id", nullable=False)
+    createdBy: uuid.UUID | None = Field(foreign_key="users.id", nullable=True, default=None)
     createdAt: datetime = Field(default_factory=datetime.now)
 
     creator: "User" = Relationship(back_populates="created_catalog_events")

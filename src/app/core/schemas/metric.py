@@ -64,3 +64,10 @@ class MetricAssignDataOut(MetricAssignData):
 
 class MetricAssignResponse(PyModel):
     items: list[MetricAssignDataOut]
+
+
+class GuardrailData(PyModel):
+    id: UUID
+    metric_id: UUID
+    history: dict | None = None
+    workedAt: datetime

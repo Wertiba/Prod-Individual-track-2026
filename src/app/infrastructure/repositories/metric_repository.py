@@ -78,3 +78,12 @@ class MetricRepository(BaseRepository[MetricCatalog]):
             return guardrail
         except SQLAlchemyError as e:
             raise RepositoryError("Database error") from e
+
+    async def get_guardrails_history(self, exp_id: UUID) -> list[GuardrailHistory]:
+        try:
+            stmt = select(GuardrailHistory).where(
+                GuardrailHistory.metric_id.in_(select(Metric.id).where(Metric.experiment_id == exp_id)))  # noqa
+            res = await self.session.execute(stmt)
+            return list(res.scalars().all())
+        except SQLAlchemyError as e:
+            raise RepositoryError("Database error") from e

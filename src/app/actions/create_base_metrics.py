@@ -9,7 +9,6 @@ async def create_base_metrics(session):
     logger = Logger().get_logger()
 
     default_metrics = [
-        # Показы и конверсии
         {
             "code": "IMPRESSIONS",
             "name": "Число показов",
@@ -41,7 +40,6 @@ async def create_base_metrics(session):
             },
         },
 
-        # Ошибки
         {
             "code": "ERRORS",
             "name": "Число ошибок",
@@ -64,7 +62,6 @@ async def create_base_metrics(session):
             },
         },
 
-        # Задержки
         {
             "code": "AVG_LATENCY",
             "name": "Средняя задержка",
