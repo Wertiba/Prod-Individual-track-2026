@@ -325,6 +325,8 @@ class ExperimentService(VariantService):
                 result = await self.uow.decision_repo.get_by_user_and_flag(user_id, code)
                 if not result:
                     flag = await self.uow.flag_repo.get_by_code(code)
+                    if not flag:
+                        raise FlagNotFoundError
                     decisions.append(DecisionData(user_id=user_id, flag_code=code, value=flag.default))
                 elif result.variant.experiment.status == ExperimentStatus.ROLLBACK:
                     control_variant = next(

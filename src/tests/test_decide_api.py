@@ -45,11 +45,12 @@ async def test_decide_no_experiment_returns_default(
 # T-DEC-02: RUNNING эксперимент → участник получает вариант
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_decide_with_running_experiment(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     # Хотя бы один из 5 пользователей должен попасть в эксперимент (part=100%)
     found_in_experiment = False
@@ -74,11 +75,12 @@ async def test_decide_with_running_experiment(
 # T-DEC-03: детерминизм — повторный запрос тех же пользователей
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_decide_determinism(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     for user in test_users:
         # Первый запрос
@@ -132,11 +134,12 @@ async def test_decide_multi_flag(
 # T-DEC-05: ROLLBACK → участник получает control variant
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_decide_rollback_returns_control(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     # Найти пользователя в эксперименте
     participant = None
@@ -152,9 +155,9 @@ async def test_decide_rollback_returns_control(
         pytest.skip("Нет участников в эксперименте")
 
     # Переводим в ROLLBACK
-    await client.post("/api/v1/experiments/status/paused", headers=admin_hdrs,
+    await client.post("/api/v1/experiments/status/paused", headers=expr_hdrs,
                       json={"code": "exp_button_color"})
-    r_rb = await client.post("/api/v1/experiments/status/completed", headers=admin_hdrs, json={
+    r_rb = await client.post("/api/v1/experiments/status/completed", headers=expr_hdrs, json={
         "code": "exp_button_color",
         "result": "ROLLBACK",
         "comment": "Откат из-за проблем",
@@ -182,4 +185,4 @@ async def test_decide_nonexistent_flag(
         "flag_codes": ["flag_that_does_not_exist"],
     })
     # Система должна вернуть ошибку (нет флага = нечего отдавать)
-    assert resp.status_code in (404, 422, 500)
+    assert resp.status_code == 404
