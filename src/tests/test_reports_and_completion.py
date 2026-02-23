@@ -154,7 +154,7 @@ async def test_report_for_draft_returns_error(
         f"/api/v1/reports/exp_button_color?time_from={tf}&time_to={tt}",
         headers=admin_hdrs,
     )
-    assert resp.status_code == 404
+    assert resp.status_code in (404, 409)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

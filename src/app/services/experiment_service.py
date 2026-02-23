@@ -349,7 +349,7 @@ class ExperimentService(VariantService):
                             flag_code=code,
                             experiment_code=result.variant.experiment.code,
                             variant=VariantData(**variant.model_dump()),
-                            value=control_variant.value
+                            value=variant.value
                         ))
                     else:
                         flag = await self.uow.flag_repo.get_by_code(code)
