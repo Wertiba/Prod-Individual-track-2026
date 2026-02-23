@@ -79,3 +79,11 @@ class EventRepository(BaseRepository[EventCatalog]):
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_exposure(self, decision_id: UUID, type: str = "EXPOSURE") -> list[Event] or None:
+        stmt = select(Event).where(and_(
+            Event.decision_id == decision_id,   # noqa
+            Event.eventCatalog_code == type,    # noqa
+        ))
+        result = await self.session.execute(stmt)
+        return None or list(result.scalars().all())

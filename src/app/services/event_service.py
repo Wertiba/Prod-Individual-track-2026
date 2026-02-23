@@ -133,6 +133,21 @@ class EventService(VariantService):
                             continue
                         elif decision.variant.experiment.status == ExperimentStatus.RUNNING:
                             affected_experiment_ids.add(decision.variant.experiment_id)
+                            catalog = await self.uow.event_repo.get_by_code(item.eventCatalog_code)
+                            if catalog is None:
+                                exceptions.append(EventErrorDetail(
+                                    eventKey=item.eventKey,
+                                    reason="Invalid event catalog code",
+                                ))
+                                continue
+                            if catalog.requiresExposure and not await self.uow.event_repo.get_exposure(
+                                    item.decision_id):
+                                exceptions.append(EventErrorDetail(
+                                    eventKey=item.eventKey,
+                                    reason="Event requires exposure",
+                                ))
+                                continue
+
                             async with self.uow.session.begin_nested():
                                 await self.uow.event_repo.assign_event(Event(**item.model_dump()))
                                 accepted += 1
