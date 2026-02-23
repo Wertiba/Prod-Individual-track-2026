@@ -56,12 +56,12 @@ ROLLBACK_EXP = {
 }
 
 
-async def run_guardrail_experiment(client, admin_hdrs, payload, code):
-    r = await client.post("/api/v1/experiments", headers=admin_hdrs, json=payload)
+async def run_guardrail_experiment(client, expr_hdrs, payload, code):
+    r = await client.post("/api/v1/experiments", headers=expr_hdrs, json=payload)
     assert r.status_code == 201, r.text
-    await client.post("/api/v1/experiments/status/review", headers=admin_hdrs, json={"code": code})
-    await client.post("/api/v1/experiments/status/stop-review", headers=admin_hdrs, json={"code": code})
-    r = await client.post("/api/v1/experiments/status/running", headers=admin_hdrs, json={"code": code})
+    await client.post("/api/v1/experiments/status/review", headers=expr_hdrs, json={"code": code})
+    await client.post("/api/v1/experiments/status/stop-review", headers=expr_hdrs, json={"code": code})
+    r = await client.post("/api/v1/experiments/status/running", headers=expr_hdrs, json={"code": code})
     assert r.status_code == 202, r.text
 
 
@@ -79,11 +79,11 @@ async def get_decision_id_for_flag(client, user_id, flag_code):
 # T-GRD-01: guardrail-метрика сохраняется
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_guardrail_metric_stored(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_show_banner, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
-    admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    r = await client.post("/api/v1/experiments", headers=admin_hdrs, json=GUARDRAIL_EXP)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    r = await client.post("/api/v1/experiments", headers=expr_hdrs, json=GUARDRAIL_EXP)
     assert r.status_code == 201
     data = r.json()
     guardrail_metrics = [m for m in data["metrics"] if m["role"] == "GUARDRAIL"]
@@ -98,11 +98,12 @@ async def test_guardrail_metric_stored(
 # T-GRD-02: ERROR_RATE > threshold → PAUSED
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_guardrail_triggers_pause(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_show_banner, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await run_guardrail_experiment(client, admin_hdrs, GUARDRAIL_EXP, "exp_guardrail_demo")
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await run_guardrail_experiment(client, expr_hdrs, GUARDRAIL_EXP, "exp_guardrail_demo")
 
     # Найти участника
     dec_id = None
@@ -133,11 +134,12 @@ async def test_guardrail_triggers_pause(
 # T-GRD-03: action=ROLLBACK → статус ROLLBACK
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_guardrail_triggers_rollback(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_show_banner, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await run_guardrail_experiment(client, admin_hdrs, ROLLBACK_EXP, "exp_rollback_guard")
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await run_guardrail_experiment(client, expr_hdrs, ROLLBACK_EXP, "exp_rollback_guard")
 
     dec_id = None
     for user in test_users:
@@ -162,11 +164,12 @@ async def test_guardrail_triggers_rollback(
 # T-GRD-04: аудит — GuardrailHistory с правильными полями
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_guardrail_audit_history(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_show_banner, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await run_guardrail_experiment(client, admin_hdrs, GUARDRAIL_EXP, "exp_guardrail_demo")
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await run_guardrail_experiment(client, expr_hdrs, GUARDRAIL_EXP, "exp_guardrail_demo")
 
     dec_id = None
     for user in test_users:
@@ -201,11 +204,12 @@ async def test_guardrail_audit_history(
 # T-GRD-05: guardrail НЕ срабатывает если порог не превышен
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_guardrail_does_not_trigger_below_threshold(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_show_banner, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await run_guardrail_experiment(client, admin_hdrs, GUARDRAIL_EXP, "exp_guardrail_demo")
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await run_guardrail_experiment(client, expr_hdrs, GUARDRAIL_EXP, "exp_guardrail_demo")
 
     dec_id = None
     for user in test_users:
