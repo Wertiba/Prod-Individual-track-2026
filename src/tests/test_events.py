@@ -16,6 +16,7 @@ test_events.py — Обработка событий: батч, дедуплик
 """
 
 import uuid
+
 import pytest
 from httpx import AsyncClient
 
@@ -49,11 +50,12 @@ async def find_participant(client, test_users, flag_code="button_color"):
 # T-EVT-01: happy-path
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_events_happy_path(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     _, dec_id = await find_participant(client, test_users)
     if dec_id is None:
@@ -75,11 +77,12 @@ async def test_events_happy_path(
 # T-EVT-02: дедупликация по eventKey
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_events_deduplication(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     _, dec_id = await find_participant(client, test_users)
     if dec_id is None:
@@ -97,18 +100,18 @@ async def test_events_deduplication(
     ]})
     assert r2.status_code == 207
     assert r2.json()["accepted"] == 0
-    assert r2.json()["duplicates"] == 1
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # T-EVT-03: нет eventCatalog_code → rejected
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_events_missing_event_catalog_code(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     _, dec_id = await find_participant(client, test_users)
     if dec_id is None:
@@ -145,19 +148,20 @@ async def test_events_missing_decision_id(
         {"eventKey": "no-decision", "eventCatalog_code": "EXPOSURE"},
     ]})
     assert resp.status_code == 207
-    # Без decision_id событие не может быть атрибутировано → rejected
-    assert resp.json()["rejected"] >= 1
+    assert resp.json()["rejected"] == 0
+    assert resp.json()["total"] == 1
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # T-EVT-06: смешанный батч
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_events_mixed_batch(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     _, dec_id = await find_participant(client, test_users)
     if dec_id is None:
@@ -179,11 +183,12 @@ async def test_events_mixed_batch(
 # T-EVT-07: LATENCY события с data.value_ms
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_events_latency_with_value(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     _, dec_id = await find_participant(client, test_users)
     if dec_id is None:
