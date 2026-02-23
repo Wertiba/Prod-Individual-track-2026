@@ -23,7 +23,6 @@ from app.core.exceptions.user_exs import (
     DeficiencyApproversError,
     ForbiddenError,
     InvalidCredentialsError,
-    InvalidFallbackDataError,
     InvalidPasswordError,
     UserAlreadyExistsError,
     UserNotActiveError,
@@ -105,9 +104,6 @@ DOMAIN_TO_API: dict[type, callable] = {
         message="Review already exists",
     ),
     UnprocessableEntityError: lambda path, exc=None: ValidationFailed(
-        path=path,
-    ),
-    InvalidFallbackDataError: lambda path, exc=None: ValidationFailed(
         path=path,
     ),
     DeficiencyApproversError: lambda path, exc=None: ValidationFailed(
