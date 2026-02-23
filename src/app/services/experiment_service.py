@@ -117,7 +117,7 @@ class ExperimentService(VariantService):
                 user.exp_index *= settings.exp_index.coefficient
 
         for user in await self.uow.user_repo.get_all():
-            if user not in participating_users:
+            if user not in participating_users and user.exp_index + settings.exp_index.term <= 100:
                 user.exp_index += settings.exp_index.term
 
         return decisions
