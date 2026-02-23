@@ -5,8 +5,8 @@
 export BASE_URL="http://localhost"
 export API="$BASE_URL/api/v1"
 
-export ADMIN_EMAIL="admin@lotty.ru"
-export ADMIN_PASSWORD="admin123"
+export ADMIN_EMAIL=admin@mail.ru
+export ADMIN_PASSWORD=123123123aA!
 
 export STATE_FILE="/tmp/lotty_demo_state"
 

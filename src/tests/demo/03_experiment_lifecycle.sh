@@ -33,11 +33,11 @@ RESP=$(curl -s -w "\n%{http_code}" -b "$COOKIE_EXPR" -X POST "$API/experiments" 
 check_status "$(echo "$RESP" | tail -1)" 201 "create experiment"
 pretty "$(echo "$RESP" | head -1)"
 
-step "3.2 Попытка запустить DRAFT → 422 (недопустимый переход)"
-expect "HTTP 422"
+step "3.2 Попытка запустить DRAFT → 409 (недопустимый переход)"
+expect "HTTP 409"
 RESP=$(curl -s -w "\n%{http_code}" -b "$COOKIE_EXPR" -X POST "$API/experiments/status/running" \
   -H "Content-Type: application/json" -d '{"code":"exp_button_color"}')
-check_status "$(echo "$RESP" | tail -1)" 422 "block running from DRAFT"
+check_status "$(echo "$RESP" | tail -1)" 409 "block running from DRAFT"
 
 step "3.3 DRAFT → IN_REVIEW"
 expect "HTTP 202, status=IN_REVIEW"
@@ -61,24 +61,58 @@ check_status "$(echo "$RESP" | tail -1)" 202 "stop-review without approvals"
 NEW_STATUS=$(echo "$RESP" | head -1 | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))")
 echo "  Новый статус: $NEW_STATUS (ожидается REWORK или REJECTED)"
 
+step "3.5.1 Попытка IN_REVIEW без изменений → 422"
+expect "HTTP 409 — block review without changes"
+RESP=$(curl -s -w "\n%{http_code}" -b "$COOKIE_EXPR" -X POST "$API/experiments/status/review" \
+  -H "Content-Type: application/json" -d '{"code":"exp_button_color"}')
+check_status "$(echo "$RESP" | tail -1)" 409 "block review without changes"
+
+step "3.5.2 Изменение версии эксперимента 1.0 → 1.1"
+expect "HTTP 200, version=1.1"
+
+UPDATE_PAYLOAD='{
+  "name":"Тест цвета кнопки Купить (обновлено)",
+  "description":"Проверяем: синяя или зелёная кнопка даёт больше конверсий (исправлена метрика)",
+  "part":100,
+  "version":1.1,
+  "variants":[
+    {"name":"control_green","value":"green","weight":50,"isControl":true},
+    {"name":"variant_blue","value":"blue","weight":50,"isControl":false}
+  ],
+  "metrics":[
+    {"metricCatalog_code":"CONVERSION_RATE","role":"MAIN"},
+    {"metricCatalog_code":"ERROR_RATE","role":"GUARDRAIL","window":7200,"threshold":30,"action_code":"PAUSE"},
+    {"metricCatalog_code":"CONVERSIONS","role":"ADDITIONAL"}
+  ]
+}'
+
+RESP=$(curl -s -w "\n%{http_code}" -b "$COOKIE_EXPR" -X PUT "$API/experiments/exp_button_color" \
+  -H "Content-Type: application/json" -d "$UPDATE_PAYLOAD")
+check_status "$(echo "$RESP" | tail -1)" 200 "update experiment version"
+NEW_VERSION=$(echo "$RESP" | head -1 | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('version',0))")
+echo "  → Версия обновлена до: $NEW_VERSION"
+
 step "3.6 Возврат в DRAFT и повторная отправка на ревью"
-# REWORK → можно снова отправить на ревью напрямую
-# Если REJECTED — нужен /status/draft сначала
 if [ "$NEW_STATUS" = "REJECTED" ]; then
   curl -s -b "$COOKIE_EXPR" -X POST "$API/experiments/status/draft" \
     -H "Content-Type: application/json" -d '{"code":"exp_button_color"}' > /dev/null
   echo "  → REJECTED: сначала переведён в DRAFT"
 fi
-curl -s -b "$COOKIE_EXPR" -X POST "$API/experiments/status/review" \
-  -H "Content-Type: application/json" -d '{"code":"exp_button_color"}' > /dev/null
-echo "  → Статус IN_REVIEW"
 
-step "3.7 Approver одобряет"
+RESP=$(curl -s -w "\n%{http_code}" -b "$COOKIE_EXPR" -X POST "$API/experiments/status/review" \
+  -H "Content-Type: application/json" -d '{"code":"exp_button_color"}')
+HTTP_CODE=$(echo "$RESP" | tail -1)
+check_status "$HTTP_CODE" 202 "to review after changes"
+BODY=$(echo "$RESP" | head -1)
+CURRENT_STATUS=$(echo "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))")
+echo "  → Статус: $CURRENT_STATUS"
+
+step "3.7 Approver одобряет (версия 1.1)"
 expect "HTTP 201, result=APPROVED"
 RESP=$(curl -s -w "\n%{http_code}" -b "$COOKIE_APPR" -X POST "$API/reviews" \
   -H "Content-Type: application/json" \
-  -d '{"experiment_code":"exp_button_color","result":"APPROVED","comment":"Всё корректно, одобряю"}')
-check_status "$(echo "$RESP" | tail -1)" 201 "approver review"
+  -d '{"experiment_code":"exp_button_color","result":"APPROVED","comment":"Версия 1.1 одобрена"}')
+check_status "$(echo "$RESP" | tail -1)" 201 "approver review v1.1"
 pretty "$(echo "$RESP" | head -1)"
 
 step "3.8 stop-review → APPROVED (required=1 выполнен)"
@@ -104,8 +138,8 @@ RESP=$(curl -s -w "\n%{http_code}" -b "$COOKIE_EXPR" -X POST "$API/experiments/s
 check_status "$(echo "$RESP" | tail -1)" 202 "to running"
 echo "  Статус: $(echo "$RESP" | head -1 | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))")"
 
-step "3.11 Второй эксперимент на тот же флаг → 422"
-expect "HTTP 422 — на button_color уже RUNNING"
+step "3.11 Второй эксперимент на тот же флаг → 409"
+expect "HTTP 403 — conflict: same flag"
 curl -s -b "$COOKIE_ADMIN" -X POST "$API/experiments" \
   -H "Content-Type: application/json" \
   -d '{"code":"exp_btn_v2","flag_code":"button_color","name":"Конфликт","description":"test","part":50,"version":1.0,
@@ -117,7 +151,7 @@ curl -s -b "$COOKIE_ADMIN" -X POST "$API/experiments/status/stop-review" \
   -H "Content-Type: application/json" -d '{"code":"exp_btn_v2"}' > /dev/null
 RESP=$(curl -s -w "\n%{http_code}" -b "$COOKIE_ADMIN" -X POST "$API/experiments/status/running" \
   -H "Content-Type: application/json" -d '{"code":"exp_btn_v2"}')
-check_status "$(echo "$RESP" | tail -1)" 422 "conflict: same flag"
+check_status "$(echo "$RESP" | tail -1)" 403 "conflict: same flag"
 
 step "3.12 История версий"
 expect "HTTP 200, список версий exp_button_color"

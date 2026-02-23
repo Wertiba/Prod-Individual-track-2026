@@ -26,7 +26,7 @@ docker compose up -d
 curl http://localhost/api/v1/ready
 
 # 2. Запустите скрипты по порядку
-cd demo
+cd ./src/tests/demo
 chmod +x *.sh
 source env.sh
 
