@@ -19,22 +19,18 @@
 # Установка зависимостей
 cd src
 pip install -r requirements.txt
-pip install -r ../tests/requirements-test.txt
+cd ..
 
-# Запуск всех тестов
-pytest tests/ -v
+# Запуск всех тестов из корня
+pytest -v
 
 # Запуск с покрытием (term + html отчёт)
-pytest tests/ --cov=app --cov-report=term-missing --cov-report=html:coverage_html -v
+pytest --cov=app --cov-report=term-missing --cov-report=html:coverage_html -v
 
 # Запуск отдельной группы
-pytest tests/test_auth_and_users.py -v
-pytest tests/test_experiment_lifecycle.py -v
-pytest tests/test_guardrails.py -v
-
-# Запуск по маркеру
-pytest tests/ -m negative -v
-pytest tests/ -m integration -v
+pytest src/tests/test_auth_and_users.py -v
+pytest src/tests/test_experiment_lifecycle.py -v
+pytest src/tests/test_guardrails.py -v
 ```
 
 ---

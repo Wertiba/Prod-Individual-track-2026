@@ -14,12 +14,15 @@ conftest.py — общие фикстуры для тестов LOTTY A/B Platfo
 """
 
 # ── Patch settings BEFORE app import ─────────────────────────────────────────
-import os
-import uuid
-from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+import sys
+from pathlib import Path
 
-import pytest
+SRC = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(SRC))
+
+import os
+from collections.abc import AsyncIterator
+
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from passlib.hash import argon2
@@ -36,23 +39,17 @@ os.environ.setdefault("ADMIN_EMAIL", "admin@test.ru")
 os.environ.setdefault("ADMIN_PASSWORD", "adminpass")
 os.environ.setdefault("ADMIN_FULLNAME", "Test Admin")
 
-from app.core.schemas.experiment import ExperimentStatus
-from app.core.schemas.metric import AggregationUnit, GuardrailAction, MetricType
+from app.core.schemas.metric import AggregationUnit, MetricType
 from app.core.schemas.role import RoleCode
 from app.infrastructure.database.db_helper import db_helper  # noqa: E402
 from app.infrastructure.models import (  # noqa: E402
-    Decision,
-    Experiment,
-    Metric,
     Role,
     User,
     UserRole,
-    Variant,
 )
-from app.infrastructure.models.event import Event, EventCatalog, EventMetricLink
+from app.infrastructure.models.event import EventCatalog, EventMetricLink
 from app.infrastructure.models.flag import Flag
 from app.infrastructure.models.metric import MetricCatalog
-from app.infrastructure.models.review import Approver, Review
 from app.main import app  # noqa: E402
 
 # ── Test engine: SQLite in-memory ────────────────────────────────────────────
