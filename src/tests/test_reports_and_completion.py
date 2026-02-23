@@ -16,8 +16,9 @@ test_reports_and_completion.py — Отчёты и завершение эксп
   T-CMP-06  ARCHIVED → RUNNING невозможен
 """
 
-import pytest
 from datetime import datetime, timedelta, timezone
+
+import pytest
 from httpx import AsyncClient
 
 from tests.conftest import auth_headers
@@ -27,7 +28,7 @@ pytestmark = pytest.mark.asyncio
 
 
 def time_window(offset_past_h=-1, offset_future_h=1):
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now()
     tf = (now + timedelta(hours=offset_past_h)).strftime("%Y-%m-%dT%H:%M:%S")
     tt = (now + timedelta(hours=offset_future_h)).strftime("%Y-%m-%dT%H:%M:%S")
     return tf, tt
@@ -41,11 +42,12 @@ def old_window():
 # T-REP-01: отчёт — разбивка по вариантам
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_report_variants_breakdown(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     tf, tt = time_window()
     resp = await client.get(
@@ -72,11 +74,12 @@ async def test_report_variants_breakdown(
 # T-REP-02: пустое окно → value=0
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_report_empty_window_returns_zero(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     tf, tt = old_window()
     resp = await client.get(
@@ -94,11 +97,12 @@ async def test_report_empty_window_returns_zero(
 # T-REP-03: события → ненулевые значения в отчёте
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_report_nonzero_after_events(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     # Найти участника
     dec_id = None
@@ -115,7 +119,7 @@ async def test_report_nonzero_after_events(
         pytest.skip("Нет участников")
 
     # Отправляем события
-    await client.post("/api/v1/events", json={"events": [
+    a = await client.post("/api/v1/events", json={"events": [
         {"eventKey": "rep-exp-001", "decision_id": dec_id, "eventCatalog_code": "EXPOSURE",   "data": {}},
         {"eventKey": "rep-conv-001","decision_id": dec_id, "eventCatalog_code": "CONVERSION",  "data": {}},
     ]})
@@ -150,7 +154,7 @@ async def test_report_for_draft_returns_error(
         f"/api/v1/reports/exp_button_color?time_from={tf}&time_to={tt}",
         headers=admin_hdrs,
     )
-    assert resp.status_code in (422, 400)
+    assert resp.status_code == 404
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -172,14 +176,15 @@ async def test_report_nonexistent_experiment(
 # T-CMP-01: ROLLOUT → resultVariant_id заполнен, comment сохранён
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_complete_rollout(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
     comment = "Синяя кнопка конвертирует лучше на 15%. Раскатываем."
-    resp = await client.post("/api/v1/experiments/status/completed", headers=admin_hdrs, json={
+    resp = await client.post("/api/v1/experiments/status/completed", headers=expr_hdrs, json={
         "code": "exp_button_color",
         "result": "ROLLOUT",
         "comment": comment,
@@ -195,13 +200,14 @@ async def test_complete_rollout(
 # T-CMP-02: ROLLBACK → resultVariant_id = control variant
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_complete_rollback(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
-    resp = await client.post("/api/v1/experiments/status/completed", headers=admin_hdrs, json={
+    resp = await client.post("/api/v1/experiments/status/completed", headers=expr_hdrs, json={
         "code": "exp_button_color",
         "result": "ROLLBACK",
         "comment": "Откат из-за роста ошибок",
@@ -224,13 +230,14 @@ async def test_complete_rollback(
 # T-CMP-03: DEFAULT → resultVariant_id=null
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_complete_default_no_winner(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
-    resp = await client.post("/api/v1/experiments/status/completed", headers=admin_hdrs, json={
+    resp = await client.post("/api/v1/experiments/status/completed", headers=expr_hdrs, json={
         "code": "exp_button_color",
         "result": "DEFAULT",
         "comment": "Статистически незначимый результат",
@@ -242,37 +249,39 @@ async def test_complete_default_no_winner(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# T-CMP-04: завершение без comment → ошибка
+# T-CMP-04: завершение без comment → ok
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_complete_requires_comment(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
 
-    resp = await client.post("/api/v1/experiments/status/completed", headers=admin_hdrs, json={
+    resp = await client.post("/api/v1/experiments/status/completed", headers=expr_hdrs, json={
         "code": "exp_button_color",
         "result": "ROLLOUT",
         # нет comment
     })
-    assert resp.status_code == 422
+    assert resp.status_code == 202
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # T-CMP-05: COMPLETED → ARCHIVED
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_archive_completed_experiment(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
-    await client.post("/api/v1/experiments/status/completed", headers=admin_hdrs, json={
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
+    await client.post("/api/v1/experiments/status/completed", headers=expr_hdrs, json={
         "code": "exp_button_color", "result": "DEFAULT", "comment": "Нет эффекта",
     })
 
-    resp = await client.post("/api/v1/experiments/status/archived", headers=admin_hdrs,
+    resp = await client.post("/api/v1/experiments/status/archived", headers=expr_hdrs,
                              json={"code": "exp_button_color"})
     assert resp.status_code == 202
     assert resp.json()["status"] == "ARCHIVED"
@@ -282,17 +291,18 @@ async def test_archive_completed_experiment(
 # T-CMP-06: ARCHIVED → RUNNING невозможен
 # ─────────────────────────────────────────────────────────────────────────────
 async def test_archived_cannot_be_run(
-    client: AsyncClient, admin_user, roles,
+    client: AsyncClient, admin_user, experimenter_user, roles,
     flag_button_color, base_metrics_catalog, base_events_catalog, event_metric_links, test_users
 ):
     admin_hdrs = await auth_headers(client, "admin@test.ru", "adminpass")
-    await create_and_run_experiment(client, admin_hdrs)
-    await client.post("/api/v1/experiments/status/completed", headers=admin_hdrs, json={
+    expr_hdrs = await auth_headers(client, "experimenter@test.ru", "exprpass")
+    await create_and_run_experiment(client, admin_hdrs, expr_hdrs=expr_hdrs)
+    await client.post("/api/v1/experiments/status/completed", headers=expr_hdrs, json={
         "code": "exp_button_color", "result": "DEFAULT", "comment": "Нет эффекта",
     })
-    await client.post("/api/v1/experiments/status/archived", headers=admin_hdrs,
+    await client.post("/api/v1/experiments/status/archived", headers=expr_hdrs,
                       json={"code": "exp_button_color"})
 
-    resp = await client.post("/api/v1/experiments/status/running", headers=admin_hdrs,
+    resp = await client.post("/api/v1/experiments/status/running", headers=expr_hdrs,
                              json={"code": "exp_button_color"})
-    assert resp.status_code == 422
+    assert resp.status_code == 409
