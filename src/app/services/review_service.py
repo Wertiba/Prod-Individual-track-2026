@@ -45,8 +45,9 @@ class ReviewService:
             review_exists = await self.uow.review_repo.get_by_id(review_id)
             if not review_exists:
                 raise ReviewNotFoundError
+            experiment = await self.uow.experiment_repo.get_by_id(review_exists.experiment_id)
 
-            return ReviewReadResponse(**review_exists.model_dump())
+            return ReviewReadResponse(**review_exists.model_dump(), experiment_code=experiment.code)
 
     async def get_all(self, exp_code: str, version: float | None = None) -> ReviewResultsResponse:
         async with self.uow:

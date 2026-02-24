@@ -14,6 +14,7 @@ from app.core.exceptions.experiment_exs import (
     VersionOfExperimentAlreadyExistsError,
 )
 from app.core.exceptions.flag_exs import FlagNotFoundError
+from app.core.exceptions.metric_exs import MetricNotFoundError
 from app.core.exceptions.user_exs import DeficiencyApproversError
 from app.core.schemas.decision import DecisionBody, DecisionData, DecisionResponse
 from app.core.schemas.experiment import (
@@ -175,6 +176,9 @@ class ExperimentService(VariantService):
                     Variant(**variant_data.model_dump(), experiment_id=experiment.id))
 
             for metric_data in experiment_data.metrics:
+                if not await self.uow.metric_repo.get_by_code(metric_data.metricCatalog_code):
+                    raise MetricNotFoundError
+
                 await self.uow.experiment_repo.add_metric(
                     Metric(**metric_data.model_dump(), experiment_id=experiment.id)
                 )
@@ -226,7 +230,7 @@ class ExperimentService(VariantService):
 
             guardrails = await self.uow.metric_repo.get_guardrails_history(experiment.id)
             if not guardrails:
-                raise ExperimentNotFoundError
+                raise MetricNotFoundError
             return ExperimentGuardrailsResponse(
                 id=experiment.id,
                 code=experiment.code,
