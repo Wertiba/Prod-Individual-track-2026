@@ -108,6 +108,7 @@ DOMAIN_TO_API: dict[type, callable] = {
     ),
     DeficiencyApproversError: lambda path, exc=None: ValidationFailed(
         path=path,
+        message="Invalid number of approvers"
     ),
     UserNotActiveError: lambda path, exc=None: Inactive(
         path=path,
